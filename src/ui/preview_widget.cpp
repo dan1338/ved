@@ -46,10 +46,30 @@ namespace ui
         {
             _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, _workspace.get_cursor()};
             _preview.last_frame = nullptr;
+            _preview.presentation_origin = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())};
+            _preview.presentation_time = 0s;
         }
 
-        // If we have no frame, try fetch it
-        if (!_preview.last_frame)
+        bool should_pull_frame = !_preview.last_frame;
+
+        if (_workspace.is_preview_active())
+        {
+            _preview.presentation_time = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())} - _preview.presentation_origin;
+
+            // If current frame has ended, ask for a new one
+            if (_preview.last_frame)
+            {
+                const auto presentation_end = core::timestamp{_preview.last_frame->pts + _preview.last_frame->duration};
+
+                if (_preview.presentation_time >= presentation_end)
+                {
+                    should_pull_frame = true;
+                }
+            }
+        }
+
+        // Try fetch a frame
+        if (should_pull_frame && !_preview.out_frames.empty())
         {
             Preview::PreviewFrame frame;
 
@@ -57,7 +77,7 @@ namespace ui
             {
                 _preview.out_frames >> frame;
 
-                // If out_frame seek id is older, discard the frame
+                // Discard the frame if it has old seek id. Newer frames OTW
                 if (frame.first < _preview.seek_id)
                 {
                     av_frame_unref(frame.second);
@@ -65,20 +85,10 @@ namespace ui
                 else
                 {
                     _preview.last_frame = frame.second;
+                    _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
                     break;
                 }
             }
-
-            // Set cursor?
-        }
-
-        // Keep pulling frames if playback enabled
-        if (_workspace.is_preview_active() && !_preview.out_frames.empty())
-        {
-            Preview::PreviewFrame frame;
-            _preview.out_frames >> frame;
-            _preview.last_frame = frame.second;
-            _workspace.set_cursor(core::timestamp(_preview.last_frame->pts));
         }
 
         if (ImGui::Begin(_widget_name, 0, _win_flags))
