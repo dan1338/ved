@@ -108,11 +108,18 @@ namespace ui
                 break;
             }
 
-            if (glfwGetKey(_window, GLFW_KEY_LEFT)) {
+            if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) {
+                if (_workspace.is_preview_active())
+                    _workspace.stop_preview();
+                else
+                    _workspace.start_preview();
+            }
+
+            if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
                 _workspace.decrement_cursor();
             }
 
-            if (glfwGetKey(_window, GLFW_KEY_RIGHT)) {
+            if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
                 _workspace.increment_cursor();
             }
 

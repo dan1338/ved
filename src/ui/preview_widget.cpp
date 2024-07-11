@@ -73,15 +73,12 @@ namespace ui
         }
 
         // Keep pulling frames if playback enabled
-        if (_workspace.is_preview_active() && _preview.last_frame)
+        if (_workspace.is_preview_active() && !_preview.out_frames.empty())
         {
-            if (!_preview.out_frames.empty())
-            {
-                Preview::PreviewFrame frame;
-                _preview.out_frames >> frame;
-                _preview.last_frame = frame.second;
-                _workspace.set_cursor(core::timestamp(_preview.last_frame->pts));
-            }
+            Preview::PreviewFrame frame;
+            _preview.out_frames >> frame;
+            _preview.last_frame = frame.second;
+            _workspace.set_cursor(core::timestamp(_preview.last_frame->pts));
         }
 
         if (ImGui::Begin(_widget_name, 0, _win_flags))

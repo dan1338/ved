@@ -11,16 +11,19 @@ namespace ui
     {
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
-            if (ImGui::Button("Play"))
+            if (_workspace.is_preview_active())
             {
-                _workspace.start_preview();
+                if (ImGui::Button("Pause"))
+                {
+                    _workspace.stop_preview();
+                }
             }
-
-            ImGui::SameLine();
-
-            if (ImGui::Button("Pause"))
+            else
             {
-                _workspace.stop_preview();
+                if (ImGui::Button("Play"))
+                {
+                    _workspace.start_preview();
+                }
             }
 
             ImGui::SameLine();
