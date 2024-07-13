@@ -52,12 +52,14 @@ namespace ui
         // Check if we need to seek
         if (_workspace.is_cursor_dirty())
         {
-            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview.seek_id + 1, _workspace.get_cursor() / 1.0s);
+            const auto cursor = _workspace.get_cursor();
 
-            _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, _workspace.get_cursor()};
+            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview.seek_id + 1, cursor / 1.0s);
+
+            _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, cursor};
             _preview.last_frame = nullptr;
-            _preview.presentation_origin = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())};
-            _preview.presentation_time = 0s;
+            _preview.presentation_origin = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())} - cursor;
+            _preview.presentation_time = cursor;
         }
 
         bool should_pull_frame = !_preview.last_frame;
