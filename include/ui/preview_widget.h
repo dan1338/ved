@@ -6,6 +6,7 @@
 #include "core/video_composer.h"
 #include "ffmpeg/frame_converter.h"
 #include "ui/widget_ids.h"
+#include "ui/widget.h"
 
 #include "msd/channel.hpp"
 
@@ -18,13 +19,15 @@
 
 namespace ui
 {
-    class PreviewWidget
+    class MainWindow;
+
+    class PreviewWidget : public Widget
     {
     public:
-        PreviewWidget(core::Workspace &workspace);
+        PreviewWidget(MainWindow &window);
         ~PreviewWidget();
 
-        void show();
+        void show() override;
 
     private:
         static constexpr auto *_widget_name = ui::widget_ids::preview;

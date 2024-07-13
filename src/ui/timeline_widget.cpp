@@ -1,5 +1,6 @@
 #include "ui/timeline_widget.h"
 
+#include "ui/main_window.h"
 #include "fmt/format.h"
 #include "imgui.h"
 
@@ -7,6 +8,13 @@
 
 namespace ui
 {
+    TimelineWidget::TimelineWidget(MainWindow &window, Properties &props):
+        Widget(window),
+        _workspace(window._workspace),
+        _props(props)
+    {
+    }
+
     void TimelineWidget::show()
     {
         if (ImGui::Begin(_widget_name, 0, _win_flags))

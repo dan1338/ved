@@ -1,7 +1,16 @@
 #include "ui/import_widget.h"
 
+#include "ui/main_window.h"
+
 namespace ui
 {
+    ImportWidget::ImportWidget(MainWindow &window, core::io::Directory &import_dir):
+        Widget(window),
+        _workspace(window._workspace),
+        _import_dir(import_dir)
+    {
+    }
+
     void ImportWidget::show()
     {
         static constexpr int node_flags =

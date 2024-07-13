@@ -7,10 +7,13 @@
 #include "core/time.h"
 
 #include "ui/widget_ids.h"
+#include "ui/widget.h"
 
 namespace ui
 {
-    class TimelineWidget
+    class MainWindow;
+
+    class TimelineWidget : public Widget
     {
     public:
         struct Properties
@@ -20,13 +23,9 @@ namespace ui
             core::milliseconds visible_timespan;
         };
 
-        TimelineWidget(core::Workspace &workspace, Properties &props):
-            _workspace(workspace),
-            _props(props)
-        {
-        }
+        TimelineWidget(MainWindow &window, Properties &props);
 
-        void show();
+        void show() override;
 
     private:
         static constexpr auto *_widget_name = ui::widget_ids::timeline;

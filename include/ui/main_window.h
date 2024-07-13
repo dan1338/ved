@@ -48,5 +48,9 @@ namespace ui
         ui::PreviewWidget _preview_widget;
 
         void layout_windows();
+
+        friend class TimelineWidget;
+        friend class ImportWidget;
+        friend class PreviewWidget;
     };
 }

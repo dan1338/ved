@@ -1,5 +1,6 @@
 #include "ui/preview_widget.h"
 
+#include "ui/main_window.h"
 #include "fmt/base.h"
 #include "fmt/ranges.h"
 #include "fmt/format.h"
@@ -20,9 +21,10 @@ static auto logger = logging::get_logger("PreviewWidget");
 
 namespace ui
 {
-    PreviewWidget::PreviewWidget(core::Workspace &workspace):
-        _workspace(workspace),
-        _preview(Preview{{workspace.get_timeline(), workspace.get_props()}})
+    PreviewWidget::PreviewWidget(MainWindow &window):
+        Widget(window),
+        _workspace(window._workspace),
+        _preview(Preview{{_workspace.get_timeline(), _workspace.get_props()}})
     {
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);

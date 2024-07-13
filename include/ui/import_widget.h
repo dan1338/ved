@@ -5,19 +5,18 @@
 #include "core/io.h"
 #include "core/workspace.h"
 #include "ui/widget_ids.h"
+#include "ui/widget.h"
 
 namespace ui
 {
-    class ImportWidget
+    class MainWindow;
+
+    class ImportWidget : public Widget
     {
     public:
-        ImportWidget(core::Workspace &workspace, core::io::Directory &import_dir):
-            _workspace(workspace),
-            _import_dir(import_dir)
-        {
-        }
+        ImportWidget(MainWindow &window, core::io::Directory &import_dir);
 
-        void show();
+        void show() override;
 
     private:
         static constexpr auto *_widget_name = ui::widget_ids::import;

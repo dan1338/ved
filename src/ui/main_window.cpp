@@ -64,9 +64,9 @@ namespace ui
         _import_dir({getcwd(0, 0)}),
         _props({1280, 720, 30}),
         _workspace(_props),
-        _timeline_widget(_workspace, _timeline_props),
-        _import_widget(_workspace, _import_dir),
-        _preview_widget(_workspace)
+        _timeline_widget(*this, _timeline_props),
+        _import_widget(*this, _import_dir),
+        _preview_widget(*this)
     {
         set_imgui_style(style);
 
