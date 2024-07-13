@@ -19,6 +19,7 @@ pkg_check_modules(GL REQUIRED gl)
 pkg_check_modules(GLEW REQUIRED glew)
 
 add_subdirectory(vendor/fmt)
+add_subdirectory(vendor/quill)
 add_subdirectory(vendor/msd_channel)
 
 include_directories(
@@ -71,6 +72,7 @@ add_library(imgui OBJECT
 target_link_libraries(ved
     imgui
     fmt
+    quill
     msd_channel
     dl
     pthread

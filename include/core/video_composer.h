@@ -36,7 +36,7 @@ namespace core
 
         bool seek(core::timestamp position) override
         {
-            logging::info("VideoComposer::seek to {:.9f}s", position / 1.0s);
+            //logging::info("VideoComposer::seek to {:.9f}s", position / 1.0s);
 
             _composition = std::make_unique<Composition>();
             _composition->start_position = position;
@@ -76,7 +76,7 @@ namespace core
                 throw std::runtime_error("av_frame_get_buffer @ render");
             }
 
-            logging::info("VideoComposer::next_frame ({}x{}) @ {:.9f} s", out_frame->width, out_frame->height, ts / 1.0s);
+            //logging::info("VideoComposer::next_frame ({}x{}) @ {:.9f} s", out_frame->width, out_frame->height, ts / 1.0s);
 
             for (auto &track : _timeline.tracks)
             {
@@ -112,11 +112,11 @@ namespace core
 
                 if (!clip_frame)
                 {
-                    logging::info("No frame found");
+                    //logging::info("No frame found");
                     continue;
                 }
 
-                logging::info("Have {} @ {} pts", magic_enum::enum_name(clip_frame->pict_type), clip_frame->pts);
+                //logging::info("Have {} @ {} pts", magic_enum::enum_name(clip_frame->pict_type), clip_frame->pts);
 
                 sws = sws_getCachedContext(sws,
                     clip_frame->width, clip_frame->height, (AVPixelFormat)clip_frame->format,
@@ -164,7 +164,7 @@ namespace core
                 auto source = ffmpeg::open_media_source(clip.file.path);
                 source->seek(seek_position + clip.start_time);
 
-                logging::info("Open clip {} @ {:.9f}s", clip.file.path, (seek_position + clip.start_time) / 1.0s);
+                //logging::info("Open clip {} @ {:.9f}s", clip.file.path, (seek_position + clip.start_time) / 1.0s);
 
                 sources[clip.id] = std::move(source);
             }

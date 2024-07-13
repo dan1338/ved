@@ -14,6 +14,8 @@
 #include "logging.h"
 #include "shaders.h"
 
+static auto logger = logging::get_logger("MainWindow");
+
 namespace ui
 {
     static void set_imgui_style(MainWindow::Style style)
@@ -63,10 +65,9 @@ namespace ui
         _props({1280, 720, 30}),
         _workspace(_props),
         _timeline_widget(_workspace, _timeline_props),
-        _preview_widget(_workspace),
-        _import_widget(_workspace, _import_dir)
+        _import_widget(_workspace, _import_dir),
+        _preview_widget(_workspace)
     {
-
         set_imgui_style(style);
 
         _timeline_props.track_height = 80.0f;
@@ -79,6 +80,8 @@ namespace ui
 
     void MainWindow::layout_windows()
     {
+        LOG_DEBUG(logger, "Layout windows");
+
         auto id = ImGui::GetID("MainWindow");
 
         const auto vp = ImGui::GetMainViewport();
@@ -109,6 +112,8 @@ namespace ui
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) {
+                LOG_DEBUG(logger, "Space pressed");
+
                 if (_workspace.is_preview_active())
                     _workspace.stop_preview();
                 else
@@ -116,10 +121,14 @@ namespace ui
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
+                LOG_DEBUG(logger, "Left pressed");
+
                 _workspace.decrement_cursor();
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
+                LOG_DEBUG(logger, "Right pressed");
+
                 _workspace.increment_cursor();
             }
 
@@ -131,7 +140,7 @@ namespace ui
             if (!_layout_done)
                 layout_windows();
 
-            double current_time = glfwGetTime();
+            double current_time = glfwGetTime(); // TODO: remove
 
             _timeline_widget.show(current_time);
             _import_widget.show();

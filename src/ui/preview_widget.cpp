@@ -16,6 +16,8 @@ struct fmt::formatter<ImDrawVert>: formatter<string_view>
     }
 };
 
+static auto logger = logging::get_logger("PreviewWidget");
+
 namespace ui
 {
     PreviewWidget::PreviewWidget(core::Workspace &workspace):
@@ -27,9 +29,15 @@ namespace ui
         glGenBuffers(1, &_cb_user.ebo);
         glGenTextures(1, &_cb_user.texture);
 
+        LOG_DEBUG(logger, "Shader loaded, id = {}", _cb_user.shader);
+
         _cb_user.uniform_image = glGetUniformLocation(_cb_user.shader, "image");
         _cb_user.uniform_screen_size = glGetUniformLocation(_cb_user.shader, "screen_size");
         _cb_user.uniform_image_size = glGetUniformLocation(_cb_user.shader, "image_size");
+
+        LOG_DEBUG(logger, "Shader uniforms, image = {}", _cb_user.uniform_image);
+        LOG_DEBUG(logger, "Shader uniforms, screen_size = {}", _cb_user.uniform_screen_size);
+        LOG_DEBUG(logger, "Shader uniforms, image_size = {}", _cb_user.uniform_image_size);
     }
 
     PreviewWidget::~PreviewWidget()
@@ -44,6 +52,8 @@ namespace ui
         // Check if we need to seek
         if (_workspace.is_cursor_dirty())
         {
+            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview.seek_id + 1, _workspace.get_cursor() / 1.0s);
+
             _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, _workspace.get_cursor()};
             _preview.last_frame = nullptr;
             _preview.presentation_origin = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())};
@@ -55,6 +65,7 @@ namespace ui
         if (_workspace.is_preview_active())
         {
             _preview.presentation_time = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())} - _preview.presentation_origin;
+            LOG_TRACE_L1(logger, "presentation_time = {}", _preview.presentation_time / 1.0s);
 
             // If current frame has ended, ask for a new one
             if (_preview.last_frame)
@@ -64,6 +75,7 @@ namespace ui
                 if (_preview.presentation_time >= presentation_end)
                 {
                     should_pull_frame = true;
+                    LOG_TRACE_L1(logger, "frame expired, pts = {}, duration = {}", _preview.last_frame->pts, _preview.last_frame->duration);
                 }
             }
         }
@@ -81,11 +93,14 @@ namespace ui
                 if (frame.first < _preview.seek_id)
                 {
                     av_frame_unref(frame.second);
+                    LOG_TRACE_L1(logger, "Frame fetched and discarded");
                 }
                 else
                 {
                     _preview.last_frame = frame.second;
                     _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
+                    LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", _preview.last_frame->pts);
+
                     break;
                 }
             }
@@ -100,6 +115,8 @@ namespace ui
                 auto *frame = _preview.last_frame;
                 _cb_user.img_size.x = frame->width;
                 _cb_user.img_size.y = frame->height;
+
+                LOG_TRACE_L1(logger, "Updating preview texture, pts = {}", frame->pts);
 
                 glBindTexture(GL_TEXTURE_2D, _cb_user.texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->data[0]);

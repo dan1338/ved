@@ -11,3 +11,6 @@
 [submodule "vendor/msd_channel"]
 	path = vendor/msd_channel
 	url = https://github.com/andreiavrammsd/cpp-channel
+[submodule "vendor/quill"]
+	path = vendor/quill
+	url = git@github.com:dan1338/quill.git

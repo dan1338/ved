@@ -114,7 +114,7 @@ namespace ffmpeg
 
         bool seek(core::timestamp position) override
         {
-            logging::info("ffmpeg::MediaSource::seek to {:.9f}s", position / 1.0s);
+            //logging::info("ffmpeg::MediaSource::seek to {:.9f}s", position / 1.0s);
 
             const auto tb_offset = core::time_cast<core::duration<1, AV_TIME_BASE>>(position).count();
 
@@ -177,8 +177,8 @@ namespace ffmpeg
 
                     if (stream == wanted_stream)
                     {
-                        logging::info("next_frame -> packet @ {:.9f} s", core::timestamp(core::timestamp(1s).count() * packet_pts / tb.den) / 1.0s);
-                        logging::info("next_frame -> frame @ {:.9f} s", core::timestamp(frame->pts) / 1.0s);
+                        //logging::info("next_frame -> packet @ {:.9f} s", core::timestamp(core::timestamp(1s).count() * packet_pts / tb.den) / 1.0s);
+                        //logging::info("next_frame -> frame @ {:.9f} s", core::timestamp(frame->pts) / 1.0s);
                         return frame;
                     }
                     else

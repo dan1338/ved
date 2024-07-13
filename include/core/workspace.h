@@ -7,6 +7,8 @@
 #include "ffmpeg/io.h"
 #include "core/time.h"
 
+#include "logging.h"
+
 namespace core
 {
     class Workspace

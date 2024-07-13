@@ -4,46 +4,41 @@
 #include <cstdio>
 #include <string>
 
-#include "fmt/base.h"
-#include "fmt/format.h"
+#include "quill/Frontend.h"
+#include "quill/Backend.h"
+#include "quill/LogMacros.h"
+#include "quill/sinks/ConsoleSink.h"
 
 namespace logging
 {
-    using namespace std::chrono_literals;
-
-    static std::chrono::high_resolution_clock clk;
-    static const auto time_origin = clk.now();
-
-    static struct TraceFile {
-        FILE *fp;
-
-        TraceFile(): fp(fopen("/dev/stdout", "w")) {}
-        ~TraceFile() { fclose(fp); }
-    } output_file;
-
-    static std::string make_prefix(const std::string name)
+    static auto get_console_colors()
     {
-        const auto timestamp = clk.now() - time_origin;
+        quill::ConsoleColours colors;
+        colors.set_default_colours();
+        colors.set_colour(quill::LogLevel::TraceL1, quill::ConsoleColours::dark);
+        colors.set_colour(quill::LogLevel::TraceL2, quill::ConsoleColours::dark);
+        colors.set_colour(quill::LogLevel::TraceL3, quill::ConsoleColours::dark);
 
-        return fmt::format("[{:.9f}] {} : ", timestamp / 1.0s, name);
+        return colors;
     }
 
-    template<typename ...T>
-    static void info(const std::string &format, T&&... args)
+    static auto get_logger(const char *name)
     {
-        fmt::println(output_file.fp, make_prefix("INFO") + format, args...);
+        const auto colors = get_console_colors();
+
+        auto sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console", colors);
+        sink->set_log_level_filter(quill::LogLevel::TraceL3);
+
+        auto logger = quill::Frontend::create_or_get_logger(name, std::move(sink));
+        logger->set_log_level(quill::LogLevel::TraceL3);
+
+        return logger;
     }
 
-    template<typename ...T>
-    static void warn(const std::string &format, T&&... args)
+    static void init()
     {
-        fmt::println(output_file.fp, make_prefix("WARN") + format, args...);
-    }
-
-    template<typename ...T>
-    static void error(const std::string &format, T&&... args)
-    {
-        fmt::println(output_file.fp, make_prefix("ERROR") + format, args...);
+        quill::BackendOptions backend_options{};
+        quill::Backend::start(backend_options);
     }
 }
 
