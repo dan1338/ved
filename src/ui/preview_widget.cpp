@@ -75,7 +75,7 @@ namespace ui
                 if (_preview.presentation_time >= presentation_end)
                 {
                     should_pull_frame = true;
-                    LOG_TRACE_L1(logger, "frame expired, pts = {}, duration = {}", _preview.last_frame->pts, _preview.last_frame->duration);
+                    LOG_TRACE_L1(logger, "frame expired, pts = {}", _preview.last_frame->pts);
                 }
             }
         }

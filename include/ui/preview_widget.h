@@ -10,6 +10,7 @@
 #include "msd/channel.hpp"
 
 #include "shaders.h"
+#include "logging.h"
 
 #include <thread>
 #include <atomic>
@@ -47,13 +48,20 @@ namespace ui
             msd::channel<PreviewFrame> out_frames{10};
 
             std::thread thread{[this](){
+                auto logger = logging::get_logger("PreviewWidget::worker");
+
                 while (1)
                 {
                     for (auto seek_req : in_seek)
                     {
+                        LOG_DEBUG(logger, "Received seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+
                         // Drop all but the latest request for best latency
                         while (!in_seek.empty())
+                        {
                             in_seek >> seek_req;
+                            LOG_DEBUG(logger, "Have newer seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+                        }
 
                         const auto &[id, position] = seek_req;
                         composer.seek(position);
@@ -61,7 +69,9 @@ namespace ui
                         while (in_seek.empty())
                         {
                             auto *frame = composer.next_frame(AVMEDIA_TYPE_VIDEO);
+                            LOG_DEBUG(logger, "Frame ready, pts = {}", frame->pts);
                             out_frames << PreviewFrame{id, frame};
+                            LOG_DEBUG(logger, "Frame sent, pts = {}", frame->pts);
                         }
                     }
                 }
