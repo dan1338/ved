@@ -14,3 +14,4 @@
 [submodule "vendor/quill"]
 	path = vendor/quill
 	url = git@github.com:dan1338/quill.git
+	branch = collapse_repetitions
