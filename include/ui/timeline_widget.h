@@ -26,7 +26,7 @@ namespace ui
         {
         }
 
-        void show(double current_time);
+        void show();
 
     private:
         static constexpr auto *_widget_name = ui::widget_ids::timeline;

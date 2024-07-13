@@ -140,9 +140,7 @@ namespace ui
             if (!_layout_done)
                 layout_windows();
 
-            double current_time = glfwGetTime(); // TODO: remove
-
-            _timeline_widget.show(current_time);
+            _timeline_widget.show();
             _import_widget.show();
             _preview_widget.show();
 

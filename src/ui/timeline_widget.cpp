@@ -7,7 +7,7 @@
 
 namespace ui
 {
-    void TimelineWidget::show(double current_time)
+    void TimelineWidget::show()
     {
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
