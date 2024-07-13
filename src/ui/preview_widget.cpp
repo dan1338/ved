@@ -77,7 +77,7 @@ namespace ui
                 if (_preview.presentation_time >= presentation_end)
                 {
                     should_pull_frame = true;
-                    LOG_TRACE_L1(logger, "frame expired, pts = {}", _preview.last_frame->pts);
+                    LOG_TRACE_L1(logger, "Frame expired, pts = {}", _preview.last_frame->pts);
                 }
             }
         }
@@ -118,7 +118,7 @@ namespace ui
                 _cb_user.img_size.x = frame->width;
                 _cb_user.img_size.y = frame->height;
 
-                LOG_TRACE_L1(logger, "Updating preview texture, pts = {}", frame->pts);
+                LOG_TRACE_L2(logger, "Updating preview texture, pts = {}, img_size=({}, {})", frame->pts, frame->width, frame->height);
 
                 glBindTexture(GL_TEXTURE_2D, _cb_user.texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->data[0]);
