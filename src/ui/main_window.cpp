@@ -133,6 +133,8 @@ namespace ui
                 _workspace.increment_cursor();
             }
 
+            LOG_TRACE_L3(logger, "Begin ui frame");
+
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
 
@@ -147,14 +149,19 @@ namespace ui
 
             ImGui::Render();
 
+            LOG_TRACE_L3(logger, "Draw ui frame");
+
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-            glfwSwapBuffers(_window);
+            LOG_TRACE_L3(logger, "End ui frame");
 
             _workspace.clean_cursor();
 
             _buffer_swapped_event.notify(core::timestamp_from_double(ImGui::GetTime()));
+
+            glfwSwapBuffers(_window);
+            LOG_TRACE_L3(logger, "Screen buffers swapped");
         }
     }
 }
