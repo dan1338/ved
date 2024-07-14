@@ -36,6 +36,7 @@ namespace ui
         ImGuiContext *_imgui_ctx;
         bool _layout_done{false};
         bool _opengl_init;
+        double _frame_delta{1/60.0f};
 
         core::io::Directory _import_dir;
         core::Workspace::Properties _props;

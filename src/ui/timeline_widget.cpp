@@ -4,7 +4,11 @@
 #include "fmt/format.h"
 #include "imgui.h"
 
+#include "logging.h"
+
 #include <filesystem>
+
+auto logger = logging::get_logger("TimelineWidget");
 
 namespace ui
 {
@@ -33,6 +37,9 @@ namespace ui
                     _workspace.start_preview();
                 }
             }
+
+            ImGui::SameLine();
+            ImGui::Text("Preview FPS: %.1lf", 1.0f / _window._frame_delta);
 
             ImGui::SameLine();
             ImGui::Text("Clips in active track: %zu", _workspace.get_active_track().clips.size());
