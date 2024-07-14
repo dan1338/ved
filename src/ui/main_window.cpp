@@ -180,7 +180,7 @@ namespace ui
             }
 
             glfwSwapBuffers(_window);
-            LOG_TRACE_L3(logger, "Screen buffers swapped");
+            LOG_TRACE_L2(logger, "Screen buffers swapped");
 
             const auto tp_now = now();
             _buffer_swapped_event.notify(tp_now);

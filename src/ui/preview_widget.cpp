@@ -140,6 +140,9 @@ namespace ui
                     else
                     {
                         _window._frame_sync_time = frame_sync_time;
+
+                        LOG_DEBUG(logger, "Expiring frame lifetime was ({} - {})",
+                                _preview.last_frame_display_time.value() / 1.0s, frame_sync_time / 1.0s);
                     }
 
                     _preview.last_frame_display_time.reset();
