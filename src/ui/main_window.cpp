@@ -1,4 +1,5 @@
 #include "ui/main_window.h"
+#include "ui/helpers.h"
 #include "core/time.h"
 
 #include <stdexcept>
@@ -106,6 +107,8 @@ namespace ui
     void MainWindow::run()
     {
         while (!glfwWindowShouldClose(_window)) {
+            const auto frame_start_time = now();
+
             glfwPollEvents();
 
             if (glfwGetKey(_window, GLFW_KEY_ESCAPE)) {
@@ -158,10 +161,12 @@ namespace ui
 
             _workspace.clean_cursor();
 
-            _buffer_swapped_event.notify(core::timestamp_from_double(ImGui::GetTime()));
 
             glfwSwapBuffers(_window);
             LOG_TRACE_L3(logger, "Screen buffers swapped");
+
+            const auto tp_now = now();
+            _buffer_swapped_event.notify(tp_now);
         }
     }
 }
