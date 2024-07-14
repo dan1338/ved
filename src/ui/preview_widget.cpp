@@ -7,6 +7,7 @@
 #include "imgui.h"
 
 #include "logging.h"
+#include <thread>
 
 template<>
 struct fmt::formatter<ImDrawVert>: formatter<string_view>
@@ -60,26 +61,33 @@ namespace ui
 
             _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, cursor};
             _preview.last_frame = nullptr;
-            _preview.presentation_origin = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())} - cursor;
-            _preview.presentation_time = cursor;
+            _preview.frame_shown_duration = 0s;
         }
 
         bool should_pull_frame = !_preview.last_frame;
 
         if (_workspace.is_preview_active())
         {
-            _preview.presentation_time = core::timestamp{(int64_t)(1e9 * ImGui::GetTime())} - _preview.presentation_origin;
-            LOG_TRACE_L1(logger, "presentation_time = {}", _preview.presentation_time / 1.0s);
-
             // If current frame has ended, ask for a new one
-            if (_preview.last_frame)
+            if (const auto *frame = _preview.last_frame)
             {
-                const auto presentation_end = core::timestamp{_preview.last_frame->pts + _preview.last_frame->duration};
+                _preview.frame_shown_duration += core::timestamp{(int64_t)(1e9 * _window._frame_delta)};
 
-                if (_preview.presentation_time >= presentation_end)
+                const auto time_remaining = (core::timestamp{frame->duration} - _preview.frame_shown_duration);
+                const auto wait_threshold = core::timestamp{17ms};
+
+                LOG_TRACE_L1(logger, "Frame time remaining = {}ms", time_remaining / 1ms);
+
+                if (time_remaining < 0s)
                 {
                     should_pull_frame = true;
-                    LOG_TRACE_L1(logger, "Frame expired, pts = {}", _preview.last_frame->pts);
+                    LOG_TRACE_L1(logger, "Frame expired, pts = {}", frame->pts);
+                }
+                else if (time_remaining <= wait_threshold)
+                {
+                    should_pull_frame = true;
+                    LOG_TRACE_L1(logger, "Frame expiring soon, waiting, pts = {}", frame->pts);
+                    std::this_thread::sleep_for(time_remaining);
                 }
             }
         }
@@ -102,6 +110,7 @@ namespace ui
                 else
                 {
                     _preview.last_frame = frame.second;
+                    _preview.frame_shown_duration = 0s;
                     _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
                     LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", _preview.last_frame->pts);
 
