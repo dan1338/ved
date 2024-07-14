@@ -104,6 +104,8 @@ namespace ui
 
     void MainWindow::run()
     {
+        double prev_time = glfwGetTime();
+
         while (!glfwWindowShouldClose(_window)) {
             glfwPollEvents();
 
@@ -152,6 +154,10 @@ namespace ui
             glfwSwapBuffers(_window);
 
             _workspace.clean_cursor();
+
+            double now = glfwGetTime();
+            _frame_delta = (now - prev_time);
+            prev_time = now;
         }
     }
 }
