@@ -1,6 +1,8 @@
 #include "ui/preview_widget.h"
 
 #include "ui/main_window.h"
+#include "ui/helpers.h"
+
 #include "fmt/base.h"
 #include "fmt/ranges.h"
 #include "fmt/format.h"
@@ -41,6 +43,18 @@ namespace ui
         LOG_DEBUG(logger, "Shader uniforms, image = {}", _cb_user.uniform_image);
         LOG_DEBUG(logger, "Shader uniforms, screen_size = {}", _cb_user.uniform_screen_size);
         LOG_DEBUG(logger, "Shader uniforms, image_size = {}", _cb_user.uniform_image_size);
+        
+        // Set the precise display time of current frame if it's shown for the first time
+        // also calculate the end time and notify MainWindow of it
+        _window._buffer_swapped_event.add_callback([this](core::timestamp display_time) {
+            const bool set_display_time =
+                _preview.last_frame && !_preview.last_frame_display_time.has_value();
+
+            if (set_display_time)
+            {
+                _preview.last_frame_display_time.emplace(display_time);
+            }
+        });
     }
 
     PreviewWidget::~PreviewWidget()
@@ -65,29 +79,34 @@ namespace ui
         }
 
         bool should_pull_frame = !_preview.last_frame;
+        core::timestamp frame_sync_time{0s};
 
         if (_workspace.is_preview_active())
         {
             // If current frame has ended, ask for a new one
             if (const auto *frame = _preview.last_frame)
             {
-                _preview.frame_shown_duration += core::timestamp{(int64_t)(1e9 * _window._frame_delta)};
-
-                const auto time_remaining = (core::timestamp{frame->duration} - _preview.frame_shown_duration);
-                const auto wait_threshold = core::timestamp{17ms};
-
-                LOG_TRACE_L1(logger, "Frame time remaining = {}ms", time_remaining / 1ms);
-
-                if (time_remaining < 0s)
+                if (!_preview.last_frame_display_time.has_value())
                 {
-                    should_pull_frame = true;
-                    LOG_TRACE_L1(logger, "Frame expired, pts = {}", frame->pts);
+                    LOG_WARNING(logger, "No display time, frame has not been displayed?");
                 }
-                else if (time_remaining <= wait_threshold)
+                else
                 {
-                    should_pull_frame = true;
-                    LOG_TRACE_L1(logger, "Frame expiring soon, waiting, pts = {}", frame->pts);
-                    std::this_thread::sleep_for(time_remaining);
+                    frame_sync_time =
+                        _preview.last_frame_display_time.value() + core::timestamp{frame->duration};
+
+                    const auto time_remaining = (frame_sync_time - now());
+
+                    if (time_remaining <= 0ms)
+                    {
+                        should_pull_frame = true;
+                        LOG_TRACE_L1(logger, "Frame expired, pts = {}", frame->pts);
+                    }
+                    else if (time_remaining <= 17ms) // ~60HZ
+                    {
+                        should_pull_frame = true;
+                        LOG_TRACE_L1(logger, "Frame expiring soon, pts = {}", frame->pts);
+                    }
                 }
             }
         }
@@ -113,6 +132,17 @@ namespace ui
                     _preview.frame_shown_duration = 0s;
                     _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
                     LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", _preview.last_frame->pts);
+
+                    if (!_preview.last_frame_display_time.has_value())
+                    {
+                        LOG_WARNING(logger, "No display time, frame has not been displayed?");
+                    }
+                    else
+                    {
+                        _window._frame_sync_time = frame_sync_time;
+                    }
+
+                    _preview.last_frame_display_time.reset();
 
                     break;
                 }

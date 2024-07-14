@@ -39,7 +39,7 @@ namespace ui
             }
 
             ImGui::SameLine();
-            ImGui::Text("Preview FPS: %.1lf", 1.0f / _window._frame_delta);
+            ImGui::Text("Preview FPS: %.1f", 1.0 / (float)(_window._frame_delta / 1.0s));
 
             ImGui::SameLine();
             ImGui::Text("Clips in active track: %zu", _workspace.get_active_track().clips.size());
