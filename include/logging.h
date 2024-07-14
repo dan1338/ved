@@ -27,10 +27,10 @@ namespace logging
         const auto colors = get_console_colors();
 
         auto sink = quill::Frontend::create_or_get_sink<quill::ConsoleSink>("console", colors);
-        sink->set_log_level_filter(quill::LogLevel::TraceL3);
+        sink->set_log_level_filter(quill::LogLevel::TraceL2);
 
         auto logger = quill::Frontend::create_or_get_logger(name, std::move(sink));
-        logger->set_log_level(quill::LogLevel::TraceL3);
+        logger->set_log_level(quill::LogLevel::TraceL2);
 
         return logger;
     }
