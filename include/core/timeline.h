@@ -8,6 +8,7 @@
 
 #include "media_file.h"
 #include "time.h"
+#include "event.h"
 
 namespace core
 {
@@ -55,29 +56,8 @@ namespace core
 
         Track& add_track();
 
-        template<typename ...CallbackArgs>
-        struct TimelineEvent
-        {
-            using CallbackType = std::function<void(CallbackArgs...)>;
-
-            std::vector<CallbackType> _callbacks;
-
-            void add_callback(const CallbackType &cb)
-            {
-                _callbacks.push_back(cb);
-            }
-
-            void notify(CallbackArgs... args)
-            {
-                for (const auto &cb : _callbacks)
-                {
-                    cb(args...);
-                }
-            }
-        };
-
-        TimelineEvent<Track&, Clip&> clip_added_event;
-        TimelineEvent<Track&, Clip&> clip_moved_event;
+        Event<Track&, Clip&> clip_added_event;
+        Event<Track&, Clip&> clip_moved_event;
     };
 }
 

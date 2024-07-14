@@ -11,6 +11,7 @@
 
 #include "core/io.h"
 #include "core/workspace.h"
+#include "core/event.h"
 
 #include "ui/timeline_widget.h"
 #include "ui/preview_widget.h"
@@ -37,6 +38,8 @@ namespace ui
         bool _layout_done{false};
         bool _opengl_init;
         double _frame_delta{1/60.0f};
+
+        core::Event<core::timestamp> _buffer_swapped_event;
 
         core::io::Directory _import_dir;
         core::Workspace::Properties _props;
