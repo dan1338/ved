@@ -19,15 +19,20 @@ namespace core
     using timestamp = duration<1, 1000000000>;
 
     template<typename T, typename K>
-    T time_cast(K time)
+    static T time_cast(K time)
     {
         return std::chrono::duration_cast<T>(time);
     }
 
     template<int64_t N, int64_t D>
-    auto custom_duration(int64_t t)
+    static auto custom_duration(int64_t t)
     {
         return std::chrono::duration<int64_t, std::ratio<N, D>>(t);
+    }
+
+    static auto timestamp_from_double(double x)
+    {
+        return core::timestamp{(int64_t)(1e9 * x)};
     }
 }
 
