@@ -1,4 +1,5 @@
 #include "ui/main_window.h"
+#include "core/time.h"
 
 #include <stdexcept>
 #include <unistd.h>
@@ -104,8 +105,6 @@ namespace ui
 
     void MainWindow::run()
     {
-        double prev_time = glfwGetTime();
-
         while (!glfwWindowShouldClose(_window)) {
             glfwPollEvents();
 
@@ -155,9 +154,7 @@ namespace ui
 
             _workspace.clean_cursor();
 
-            double now = glfwGetTime();
-            _frame_delta = (now - prev_time);
-            prev_time = now;
+            _buffer_swapped_event.notify(core::timestamp_from_double(ImGui::GetTime()));
         }
     }
 }
