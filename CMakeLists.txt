@@ -52,6 +52,7 @@ add_executable(ved
     src/core/workspace.cpp
     src/core/timeline.cpp
     src/core/video_renderer.cpp
+    src/ui/helpers.cpp
     src/ui/import_widget.cpp
     src/ui/timeline_widget.cpp
     src/ui/main_window.cpp
