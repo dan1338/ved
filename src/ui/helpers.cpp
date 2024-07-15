@@ -1,10 +1,10 @@
 #include "ui/helpers.h"
-#include "imgui/imgui.h"
+#include <GLFW/glfw3.h>
 
 namespace ui
 {
     core::timestamp now()
     {
-        return core::timestamp_from_double(ImGui::GetTime());
+        return core::timestamp_from_double(glfwGetTime());
     }
 }

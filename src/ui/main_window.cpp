@@ -1,4 +1,5 @@
 #include "ui/main_window.h"
+#include "ui/helpers.h"
 #include "core/time.h"
 
 #include <stdexcept>
@@ -106,6 +107,9 @@ namespace ui
     void MainWindow::run()
     {
         while (!glfwWindowShouldClose(_window)) {
+            const auto frame_start_time = now();
+            _frame_sync_time = 0s;
+
             glfwPollEvents();
 
             if (glfwGetKey(_window, GLFW_KEY_ESCAPE)) {
@@ -133,6 +137,8 @@ namespace ui
                 _workspace.increment_cursor();
             }
 
+            LOG_TRACE_L3(logger, "Begin ui frame");
+
             ImGui_ImplOpenGL3_NewFrame();
             ImGui_ImplGlfw_NewFrame();
 
@@ -147,14 +153,38 @@ namespace ui
 
             ImGui::Render();
 
+            LOG_TRACE_L3(logger, "Draw ui frame");
+
             glClear(GL_COLOR_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
-            glfwSwapBuffers(_window);
+            LOG_TRACE_L3(logger, "End ui frame");
 
             _workspace.clean_cursor();
 
-            _buffer_swapped_event.notify(core::timestamp_from_double(ImGui::GetTime()));
+            // Frame sync time is set when a new frame will be shown to the user after this buffer swap
+            // We should strive to time it accurately to ensure proper display duration of the previous frame
+            if (_frame_sync_time != 0s)
+            {
+                const auto remaining_time = (_frame_sync_time - now());
+
+                if (remaining_time > 0s)
+                {
+                    LOG_DEBUG(logger, "Have {}ms remaining frame time, sleeping", remaining_time / 1ms);
+                    std::this_thread::sleep_for(remaining_time);
+                }
+                else if (remaining_time < 0s)
+                {
+                    LOG_WARNING(logger, "Exceeded frame sync time, remaining time {}ms", remaining_time / 1ms);
+                }
+            }
+
+            glfwSwapBuffers(_window);
+            LOG_TRACE_L2(logger, "Screen buffers swapped");
+
+            const auto tp_now = now();
+            _buffer_swapped_event.notify(tp_now);
+            _frame_delta = tp_now - frame_start_time;
         }
     }
 }

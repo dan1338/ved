@@ -9,6 +9,9 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 
+include(cmake/FFMpeg.cmake)
+
+set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
 pkg_check_modules(AVUTIL REQUIRED libavutil)
 pkg_check_modules(AVCODEC REQUIRED libavcodec)
 pkg_check_modules(AVFORMAT REQUIRED libavformat)
