@@ -11,11 +11,16 @@ find_package(PkgConfig REQUIRED)
 
 include(cmake/FFMpeg.cmake)
 
-set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
-pkg_check_modules(AVUTIL REQUIRED libavutil)
-pkg_check_modules(AVCODEC REQUIRED libavcodec)
-pkg_check_modules(AVFORMAT REQUIRED libavformat)
-pkg_check_modules(SWSCALE REQUIRED libswscale)
+# TODO: figure out a way to ensure linkage with static ffmpeg libs only
+# this and the set(CMAKE_FIND_LIBRARY_SUFFIXES) seems to work for now
+#set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
+
+pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
+    libavutil
+    libavcodec
+    libavformat
+    libswscale
+)
 
 pkg_check_modules(GLFW3 REQUIRED glfw3)
 pkg_check_modules(GL REQUIRED gl)
@@ -26,10 +31,6 @@ add_subdirectory(vendor/quill)
 add_subdirectory(vendor/msd_channel)
 
 include_directories(
-    ${AVUTIL_INCLUDE_DIRS}
-    ${AVCODEC_INCLUDE_DIRS}
-    ${AVFORMAT_INCLUDE_DIRS}
-    ${SWSCALE_INCLUDE_DIRS}
     ${GLFW3_INCLUDE_DIRS}
     ${GL_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
@@ -39,10 +40,6 @@ include_directories(
 )
 
 link_directories(
-    ${AVUTIL_LIBRARY_DIRS}
-    ${AVCODEC_LIBRARY_DIRS}
-    ${AVFORMAT_LIBRARY_DIRS}
-    ${SWSCALE_LIBRARY_DIRS}
     ${GLFW3_LIBRARY_DIRS}
     ${GL_LIBRARY_DIRS}
     ${GLEW_LIBRARY_DIRS}
@@ -73,6 +70,8 @@ add_library(imgui OBJECT
     vendor/imgui/imgui.cpp
 )
 
+set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
+
 target_link_libraries(ved
     imgui
     fmt
@@ -80,12 +79,8 @@ target_link_libraries(ved
     msd_channel
     dl
     pthread
-    ${AVCODEC_STATIC_LIBRARIES}
-    ${AVUTIL_STATIC_LIBRARIES}
-    ${AVFORMAT_STATIC_LIBRARIES}
-    ${SWSCALE_STATIC_LIBRARIES}
+    PkgConfig::FFMPEG
     ${GLFW3_LIBRARIES}
     ${GL_LIBRARIES}
     ${GLEW_LIBRARIES}
 )
-
