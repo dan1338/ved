@@ -76,6 +76,9 @@ namespace core
                 throw std::runtime_error("av_frame_get_buffer @ render");
             }
 
+            // Zero out frame
+            memset(out_frame->data[0], 0, out_frame->linesize[0] * out_frame->height);
+
             //logging::info("VideoComposer::next_frame ({}x{}) @ {:.9f} s", out_frame->width, out_frame->height, ts / 1.0s);
 
             for (auto &track : _timeline.tracks)
