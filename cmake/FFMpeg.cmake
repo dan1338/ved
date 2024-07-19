@@ -3,7 +3,7 @@ include(ProcessorCount)
 set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/ffmpeg)
 
 execute_process(
-    COMMAND ./configure --prefix=ffmpeg-install
+    COMMAND ./configure --prefix=${FFMPEG_DIR}/ffmpeg-install
     WORKING_DIRECTORY ${FFMPEG_DIR}
 )
 

@@ -13,7 +13,7 @@ include(cmake/FFMpeg.cmake)
 
 # TODO: figure out a way to ensure linkage with static ffmpeg libs only
 # this and the set(CMAKE_FIND_LIBRARY_SUFFIXES) seems to work for now
-#set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
+set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
 
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
     libavutil
