@@ -213,6 +213,20 @@ namespace ffmpeg
             return nullptr;
         }
 
+        bool has_stream(AVMediaType frame_type) override
+        {
+            if (frame_type == AVMEDIA_TYPE_AUDIO)
+            {
+                return _audio_stream != -1;
+            }
+            else if (frame_type == AVMEDIA_TYPE_VIDEO)
+            {
+                return _video_stream != -1;
+            }
+
+            return false;
+        }
+
     private:
         std::string _path;
         AVFormatContext *_format_ctx;

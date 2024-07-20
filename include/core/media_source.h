@@ -18,6 +18,7 @@ namespace core
         virtual bool seek(int64_t byte_offset) = 0;
 
         virtual AVFrame* next_frame(AVMediaType frame_type) = 0;
+        virtual bool has_stream(AVMediaType frame_type) = 0;
     };
 };
 
