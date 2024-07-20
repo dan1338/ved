@@ -79,27 +79,7 @@ namespace core
             }
 
             auto &clip = track.clips[*clip_idx];
-            auto &clip_source = *_composition->sources.at(clip.id);
-
-            AVFrame *clip_frame{nullptr};
-            core::timestamp clip_ts;
-
-            // Get frame which aligns with current timestamp
-            do
-            {
-                if (clip_frame)
-                    av_frame_unref(clip_frame);
-
-                clip_frame = clip_source.next_frame(AVMEDIA_TYPE_VIDEO);
-
-                if (!clip_frame) // Early EOF
-                {
-                    break;
-                }
-
-                clip_ts = core::timestamp(clip_frame->pts) + clip.position;
-            }
-            while (ts > clip_ts);
+            AVFrame *clip_frame = read_clip_frame_timed(clip, ts);
 
             if (!clip_frame)
             {
@@ -121,6 +101,38 @@ namespace core
         ts += _frame_dt;
 
         return out_frame;
+    }
+
+    bool VideoComposer::has_stream(AVMediaType frame_type)
+    {
+        return (frame_type == AVMEDIA_TYPE_AUDIO || frame_type == AVMEDIA_TYPE_VIDEO);
+    }
+
+    AVFrame *VideoComposer::read_clip_frame_timed(Timeline::Clip &clip, core::timestamp ts)
+    {
+        AVFrame *clip_frame{nullptr};
+        core::timestamp clip_ts;
+
+        auto &clip_source = *_composition->sources.at(clip.id);
+
+        // Get frame which aligns with current timestamp
+        do
+        {
+            if (clip_frame)
+                av_frame_unref(clip_frame);
+
+            clip_frame = clip_source.next_frame(AVMEDIA_TYPE_VIDEO);
+
+            if (!clip_frame) // Early EOF
+            {
+                break;
+            }
+
+            clip_ts = core::timestamp(clip_frame->pts) + clip.position;
+        }
+        while (ts > clip_ts);
+
+        return clip_frame;
     }
 
     void VideoComposer::Composition::add_clip(Timeline::Clip &clip)
