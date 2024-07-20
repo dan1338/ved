@@ -29,6 +29,7 @@ pkg_check_modules(GLEW REQUIRED glew)
 add_subdirectory(vendor/fmt)
 add_subdirectory(vendor/quill)
 add_subdirectory(vendor/msd_channel)
+add_subdirectory(vendor/charls)
 
 include_directories(
     ${GLFW3_INCLUDE_DIRS}
