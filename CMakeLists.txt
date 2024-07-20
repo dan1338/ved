@@ -47,10 +47,12 @@ link_directories(
 
 add_executable(ved
     src/main.cpp
+    src/logging.cpp
     src/ffmpeg/io.cpp
     src/ffmpeg/media_source.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
+    src/core/video_composer.cpp
     src/ui/helpers.cpp
     src/ui/import_widget.cpp
     src/ui/timeline_widget.cpp
