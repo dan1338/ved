@@ -144,7 +144,7 @@ namespace ui
             {
                 // Still dragging
                 auto &clip = get_dragged_clip();
-                clip.position = _dragging_info.org_position + delta_t;
+                clip.position = _workspace.align_timestamp(_dragging_info.org_position + delta_t);
 
                 auto &timeline = _workspace.get_timeline();
                 timeline.clip_moved_event.notify(track, clip);
