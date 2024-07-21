@@ -51,7 +51,6 @@ add_executable(ved
     src/ffmpeg/media_source.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
-    src/core/video_renderer.cpp
     src/ui/helpers.cpp
     src/ui/import_widget.cpp
     src/ui/timeline_widget.cpp
