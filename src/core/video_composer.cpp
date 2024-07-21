@@ -12,8 +12,16 @@ namespace core
     {
         seek(0s);
 
+        for (auto &track : _timeline.tracks)
+        {
+            for (auto &clip : track.clips)
+            {
+                add_clip(clip);
+            }
+        }
+
         _timeline.clip_added_event.add_callback([this](auto &track, auto &clip){
-            _composition->add_clip(clip);
+            add_clip(clip);
         });
     }
 
@@ -29,14 +37,6 @@ namespace core
         _composition = std::make_unique<Composition>();
         _composition->start_position = position;
         _composition->last_position = position;
-
-        for (auto &track : _timeline.tracks)
-        {
-            for (auto &clip : track.clips)
-            {
-                _composition->add_clip(clip);
-            }
-        }
 
         return true;
     }
@@ -80,7 +80,9 @@ namespace core
             }
 
             auto &clip = track.clips[*clip_idx];
-            AVFrame *clip_frame = read_clip_frame_timed(clip, ts);
+            auto &source = _sources.at(clip.id);
+
+            AVFrame *clip_frame = source.frame_at(ts - clip.position + clip.start_time);
 
             if (!clip_frame)
             {
@@ -111,50 +113,14 @@ namespace core
         return (frame_type == AVMEDIA_TYPE_AUDIO || frame_type == AVMEDIA_TYPE_VIDEO);
     }
 
-    AVFrame *VideoComposer::read_clip_frame_timed(Timeline::Clip &clip, core::timestamp ts)
-    {
-        AVFrame *clip_frame{nullptr};
-        core::timestamp clip_ts;
-
-        auto &clip_source = *_composition->sources.at(clip.id);
-
-        // Get frame which aligns with current timestamp
-        do
-        {
-            if (clip_frame)
-                av_frame_unref(clip_frame);
-
-            clip_frame = clip_source.next_frame(AVMEDIA_TYPE_VIDEO);
-
-            if (!clip_frame) // Early EOF
-            {
-                break;
-            }
-
-            clip_ts = core::timestamp(clip_frame->pts) + clip.position;
-        }
-        while (ts > clip_ts);
-
-        return clip_frame;
-    }
-
-    void VideoComposer::Composition::add_clip(Timeline::Clip &clip)
+    void VideoComposer::add_clip(Timeline::Clip &clip)
     {
         // We only support forward reading of frames
         // check if clip is reachable
-        if (clip.end_position() < start_position)
+        if (clip.end_position() < _composition->start_position)
             return;
 
-        core::timestamp seek_position{0s};
-
-        // If the cursor is over the clip, seek to that position in the clip
-        if (last_position >= clip.position && last_position <= clip.end_position())
-            seek_position = (last_position - clip.position);
-
-        auto source = ffmpeg::open_media_source(clip.file.path);
-        source->seek(seek_position + clip.start_time);
-
-        sources[clip.id] = std::move(source);
+        _sources.emplace(clip.id, clip.file.path);
     }
 }
 

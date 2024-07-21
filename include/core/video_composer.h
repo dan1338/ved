@@ -7,6 +7,7 @@
 #include "core/media_source.h"
 #include "core/timeline.h"
 #include "core/workspace.h"
+#include "core/sync_media_source.h"
 #include "ffmpeg/media_source.h"
 
 #include "magic_enum.hpp"
@@ -27,11 +28,13 @@ namespace core
         bool has_stream(AVMediaType frame_type) override;
 
     private:
-        AVFrame *read_clip_frame_timed(Timeline::Clip &clip, core::timestamp ts);
+        void add_clip(Timeline::Clip &clip);
 
         core::Timeline &_timeline;
         core::Workspace::Properties &_props;
         core::timestamp _frame_dt;
+
+        std::unordered_map<Timeline::Clip::ID, SyncMediaSource> _sources;
 
         using MediaSourcePtr = std::unique_ptr<MediaSource>;
 
@@ -40,9 +43,6 @@ namespace core
             core::timestamp start_position;
             core::timestamp last_position;
             std::vector<AVFrame*> frames;
-            std::unordered_map<Timeline::Clip::ID, MediaSourcePtr> sources;
-
-            void add_clip(Timeline::Clip &clip);
         };
 
         std::unique_ptr<Composition> _composition;
