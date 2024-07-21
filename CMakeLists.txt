@@ -80,6 +80,7 @@ target_link_libraries(ved
     fmt
     quill
     msd_channel
+    charls
     dl
     pthread
     PkgConfig::FFMPEG

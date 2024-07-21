@@ -32,11 +32,14 @@ namespace core
 
     bool VideoComposer::seek(core::timestamp position)
     {
-        LOG_DEBUG(logger, "Seek to {}s", position / 1.0s);
+        // The timestamps used with SyncMediaSource have to be a multiple of frame_dt
+        const auto dt_aligned_position = position - (position % _frame_dt);
+
+        LOG_DEBUG(logger, "Seek, asked = {}s, actual = {}", position / 1.0s, dt_aligned_position / 1.0s);
 
         _composition = std::make_unique<Composition>();
-        _composition->start_position = position;
-        _composition->last_position = position;
+        _composition->start_position = dt_aligned_position;
+        _composition->last_position = dt_aligned_position;
 
         return true;
     }
