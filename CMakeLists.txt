@@ -29,6 +29,7 @@ pkg_check_modules(GLEW REQUIRED glew)
 add_subdirectory(vendor/fmt)
 add_subdirectory(vendor/quill)
 add_subdirectory(vendor/msd_channel)
+add_subdirectory(vendor/charls)
 
 include_directories(
     ${GLFW3_INCLUDE_DIRS}
@@ -47,11 +48,13 @@ link_directories(
 
 add_executable(ved
     src/main.cpp
+    src/logging.cpp
     src/ffmpeg/io.cpp
     src/ffmpeg/media_source.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
-    src/core/video_renderer.cpp
+    src/core/video_composer.cpp
+    src/core/sync_media_source.cpp
     src/ui/helpers.cpp
     src/ui/import_widget.cpp
     src/ui/timeline_widget.cpp
@@ -77,6 +80,7 @@ target_link_libraries(ved
     fmt
     quill
     msd_channel
+    charls
     dl
     pthread
     PkgConfig::FFMPEG

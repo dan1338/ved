@@ -11,6 +11,8 @@
 
 #include "logging.h"
 
+static auto logger = logging::get_logger("MediaSource_ffmpeg");
+
 namespace ffmpeg
 {
     static char err_buffer[256];
@@ -31,11 +33,14 @@ namespace ffmpeg
             codec = avcodec_find_decoder(codecpar->codec_id);
             codec_ctx = avcodec_alloc_context3(codec);
 
+            LOG_DEBUG(logger, "Using codec {} ({})", codec->name, codec->long_name);
+
             avcodec_parameters_to_context(codec_ctx, codecpar);
 
             if (int err = avcodec_open2(codec_ctx, codec, nullptr) != 0)
             {
-                throw fmt::system_error(err, "avcodec_open2 : {}", make_errstr(err));
+                LOG_CRITICAL(logger, "Cannot open codec, {}", make_errstr(err));
+                throw fmt::system_error(err, "avcodec_open2");
             }
         }
 
@@ -73,6 +78,8 @@ namespace ffmpeg
             _path(std::move(path)),
             _format_ctx(nullptr)
         {
+            LOG_DEBUG(logger, "Opening {}", _path);
+
             int err = avformat_open_input(&_format_ctx, _path.c_str(), nullptr, nullptr);
 
             if (err != 0)
@@ -91,9 +98,15 @@ namespace ffmpeg
 
                 // Save the first stream index of each kind
                 if (stream->type == AVMEDIA_TYPE_AUDIO && _audio_stream == -1)
+                {
+                    LOG_DEBUG(logger, "Found audio, stream index = {}", i);
                     _audio_stream = i;
+                }
                 if (stream->type == AVMEDIA_TYPE_VIDEO && _video_stream == -1)
+                {
+                    LOG_DEBUG(logger, "Found video, stream index = {}", i);
                     _video_stream = i;
+                }
 
                 _streams.push_back(std::move(stream));
             }
@@ -103,6 +116,8 @@ namespace ffmpeg
 
         ~MediaSource() override
         {
+            LOG_DEBUG(logger, "Closing {}", _path);
+
             avformat_close_input(&_format_ctx);
             av_packet_free(&_packet);
         }
@@ -114,12 +129,9 @@ namespace ffmpeg
 
         bool seek(core::timestamp position) override
         {
-            //logging::info("ffmpeg::MediaSource::seek to {:.9f}s", position / 1.0s);
-
             const auto tb_offset = core::time_cast<core::duration<1, AV_TIME_BASE>>(position).count();
 
-            // OLD
-            // int err = av_seek_frame(_format_ctx, -1, tb_offset, 0); // BACKWARD?
+            LOG_DEBUG(logger, "Seek to {}s, tb_offset = {}", position / 1.0s, tb_offset);
 
             int err = avformat_seek_file(_format_ctx, -1, 0, tb_offset, tb_offset, 0);
 
@@ -152,18 +164,22 @@ namespace ffmpeg
 
             AVFrame *frame = av_frame_alloc();
 
+            LOG_TRACE_L3(logger, "Begin next_frame");
+
             while (1)
             {
                 int err = av_read_frame(_format_ctx, _packet);
 
                 if (err == AVERROR_EOF)
                 {
+                    LOG_DEBUG(logger, "End of file {}", _path);
                     break;
                 }
 
+                LOG_TRACE_L1(logger, "Read packet, pts = {}, size = {}", _packet->pts, _packet->size);
+
                 auto *stream = _streams[_packet->stream_index].get();
                 const auto tb = _format_ctx->streams[_packet->stream_index]->time_base;
-                const auto packet_pts = _packet->pts;
 
                 avcodec_send_packet(stream->codec_ctx, _packet);
                 av_packet_unref(_packet);
@@ -173,12 +189,13 @@ namespace ffmpeg
                 if (err == 0)
                 {
                     // Rewrite pts into timestamp units
+                    const auto original_pts = frame->pts;
                     frame->pts = (core::timestamp(1s).count() * frame->pts / tb.den);
 
                     if (stream == wanted_stream)
                     {
-                        //logging::info("next_frame -> packet @ {:.9f} s", core::timestamp(core::timestamp(1s).count() * packet_pts / tb.den) / 1.0s);
-                        //logging::info("next_frame -> frame @ {:.9f} s", core::timestamp(frame->pts) / 1.0s);
+                        LOG_TRACE_L1(logger, "Receive frame, original_pts = {}, new_pts = {}", original_pts, frame->pts);
+                        LOG_TRACE_L3(logger, "End next_frame");
                         return frame;
                     }
                     else
@@ -193,10 +210,26 @@ namespace ffmpeg
                 }
             }
 
+            LOG_TRACE_L3(logger, "End next_frame");
+
             av_packet_unref(_packet);
             av_frame_free(&frame);
 
             return nullptr;
+        }
+
+        bool has_stream(AVMediaType frame_type) override
+        {
+            if (frame_type == AVMEDIA_TYPE_AUDIO)
+            {
+                return _audio_stream != -1;
+            }
+            else if (frame_type == AVMEDIA_TYPE_VIDEO)
+            {
+                return _video_stream != -1;
+            }
+
+            return false;
         }
 
     private:
