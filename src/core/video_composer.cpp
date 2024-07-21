@@ -68,6 +68,7 @@ namespace core
         memset(out_frame->data[0], 0, out_frame->linesize[0] * out_frame->height);
 
         LOG_DEBUG(logger, "Next frame, ts = {}s", ts / 1.0s);
+        LOG_TRACE_L3(logger, "Begin compose");
 
         for (auto &track : _timeline.tracks)
         {
@@ -96,6 +97,8 @@ namespace core
             sws_scale(sws, clip_frame->data, clip_frame->linesize, 0, clip_frame->height, out_frame->data, out_frame->linesize);
             av_frame_unref(clip_frame);
         }
+
+        LOG_TRACE_L3(logger, "End compose");
 
         _composition->frames.push_back(out_frame); // TODO: remove this
         ts += _frame_dt;

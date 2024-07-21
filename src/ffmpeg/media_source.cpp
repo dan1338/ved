@@ -131,7 +131,7 @@ namespace ffmpeg
         {
             const auto tb_offset = core::time_cast<core::duration<1, AV_TIME_BASE>>(position).count();
 
-            LOG_TRACE_L1(logger, "Seek to {}s, tb_offset = {}", position / 1.0s, tb_offset);
+            LOG_DEBUG(logger, "Seek to {}s, tb_offset = {}", position / 1.0s, tb_offset);
 
             int err = avformat_seek_file(_format_ctx, -1, 0, tb_offset, tb_offset, 0);
 
@@ -164,6 +164,8 @@ namespace ffmpeg
 
             AVFrame *frame = av_frame_alloc();
 
+            LOG_TRACE_L3(logger, "Begin next_frame");
+
             while (1)
             {
                 int err = av_read_frame(_format_ctx, _packet);
@@ -193,6 +195,7 @@ namespace ffmpeg
                     if (stream == wanted_stream)
                     {
                         LOG_TRACE_L1(logger, "Receive frame, original_pts = {}, new_pts = {}", original_pts, frame->pts);
+                        LOG_TRACE_L3(logger, "End next_frame");
                         return frame;
                     }
                     else
@@ -206,6 +209,8 @@ namespace ffmpeg
                     throw std::runtime_error("avcodec_receive_frame");
                 }
             }
+
+            LOG_TRACE_L3(logger, "End next_frame");
 
             av_packet_unref(_packet);
             av_frame_free(&frame);
