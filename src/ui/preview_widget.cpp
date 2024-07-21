@@ -128,6 +128,9 @@ namespace ui
                 }
                 else
                 {
+                    if (_preview.last_frame)
+                        av_frame_unref(_preview.last_frame);
+
                     _preview.last_frame = frame.second;
                     _preview.frame_shown_duration = 0s;
                     _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
