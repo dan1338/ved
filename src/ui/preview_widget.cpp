@@ -67,7 +67,7 @@ namespace ui
     void PreviewWidget::show()
     {
         // Check if we need to seek
-        if (_workspace.is_cursor_dirty())
+        if (_workspace.should_refresh_preview())
         {
             const auto cursor = _workspace.get_cursor();
 

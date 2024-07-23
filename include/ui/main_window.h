@@ -43,7 +43,6 @@ namespace ui
         core::Event<core::timestamp> _buffer_swapped_event;
 
         core::io::Directory _import_dir;
-        core::Workspace::Properties _props;
         core::Workspace _workspace;
 
         ui::TimelineWidget::Properties _timeline_props;

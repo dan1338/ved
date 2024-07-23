@@ -64,8 +64,7 @@ namespace ui
     MainWindow::MainWindow(int init_w, int init_h, Style style):
         _opengl_init(init(init_w, init_h)),
         _import_dir({getcwd(0, 0)}),
-        _props({1280, 720, 30}),
-        _workspace(_props),
+        _workspace({1280, 720, 30}),
         _timeline_widget(*this, _timeline_props),
         _import_widget(*this, _import_dir),
         _preview_widget(*this)
@@ -159,8 +158,6 @@ namespace ui
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
             LOG_TRACE_L3(logger, "End ui frame");
-
-            _workspace.clean_cursor();
 
             // Frame sync time is set when a new frame will be shown to the user after this buffer swap
             // We should strive to time it accurately to ensure proper display duration of the previous frame

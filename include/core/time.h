@@ -34,5 +34,10 @@ namespace core
     {
         return core::timestamp{(int64_t)(1e9 * x)};
     }
+
+    static auto align_timestamp(core::timestamp ts, core::timestamp delta)
+    {
+        return ts - (ts % delta);
+    }
 }
 

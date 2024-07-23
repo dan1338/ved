@@ -35,14 +35,6 @@ namespace ui
         core::Workspace &_workspace;
         Properties &_props;
 
-        struct PlaybackState
-        {
-            bool active{false};
-
-            double start_time;
-            double speed{1.0};
-        } _playback_state;
-
         struct DraggingInfo
         {
             bool active{false};
@@ -55,13 +47,10 @@ namespace ui
 
         core::Timeline::Clip &get_dragged_clip()
         {
-            auto &track = _workspace.get_tracks()[_dragging_info.track_idx];
+            auto &track = _workspace.get_timeline().get_track(_dragging_info.track_idx);
+
             return track.clips[_dragging_info.clip_idx];
         }
-
-        void show_tracks();
-        void show_track_clips(size_t track_idx);
-        void draw_cursor();
 
         core::timestamp winpos_to_timestamp(ImVec2 win_pos, ImVec2 win_size)
         {
@@ -74,6 +63,10 @@ namespace ui
         {
             return (win_size.x * ts) / _props.visible_timespan;
         }
+
+        void show_tracks();
+        void show_track_clips(size_t track_idx);
+        void draw_cursor();
     };
 }
 

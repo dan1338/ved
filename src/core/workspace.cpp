@@ -2,19 +2,25 @@
 
 namespace core
 {
-    Workspace::Workspace(Properties &props):
-        _props(props),
-        _frame_dt(core::timestamp(1s).count() / props.frame_rate)
+    Workspace::Workspace(WorkspaceProperties props):
+        _logger(logging::get_logger("Workspace")),
+        _props(std::move(props)),
+        _timeline(_props)
     {
-        _timeline.add_track(); // Default track
-    }
+        _timeline.clip_added_event.add_callback([this](auto &clip) {
+            _force_preview_refresh = true;
+        });
 
-    void Workspace::remove_track(uint32_t idx)
-    {
-        if (_timeline.tracks.size() > 1) {
-            _timeline.tracks.erase(_timeline.tracks.begin() + idx);
-            _active_track_idx = std::min((size_t)_active_track_idx, _timeline.tracks.size());
-        }
+        _timeline.clip_moved_event.add_callback([this](auto &clip) {
+            _force_preview_refresh = true;
+        });
+
+        _timeline.track_removed_event.add_callback([this](auto track_idx) {
+            if (_active_track_idx > track_idx || _active_track_idx >= _timeline.get_tracks().size())
+                --_active_track_idx;
+        });
+
+        _timeline.add_track(); // Default track
     }
 }
 

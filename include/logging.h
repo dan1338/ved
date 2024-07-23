@@ -14,7 +14,9 @@
 
 namespace logging
 {
+    using Logger = quill::Frontend::logger_t;
+
     void init();
-    quill::Frontend::logger_t *get_logger(const char *name);
+    Logger *get_logger(const char *name);
 }
 

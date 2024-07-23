@@ -5,14 +5,14 @@ static auto logger = logging::get_logger("VideoComposer");
 
 namespace core
 {
-    VideoComposer::VideoComposer(core::Timeline &timeline, core::Workspace::Properties &props):
+    VideoComposer::VideoComposer(core::Timeline &timeline, WorkspaceProperties &props):
         _timeline(timeline),
         _props(props),
         _frame_dt(core::timestamp(1s).count() / props.frame_rate)
     {
         seek(0s);
 
-        for (auto &track : _timeline.tracks)
+        for (auto &track : _timeline.get_tracks())
         {
             for (auto &clip : track.clips)
             {
@@ -20,7 +20,14 @@ namespace core
             }
         }
 
-        _timeline.clip_added_event.add_callback([this](auto &track, auto &clip){
+        _timeline.clip_added_event.add_callback([this](auto &clip){
+            add_clip(clip);
+        });
+
+        _timeline.clip_moved_event.add_callback([this](auto &clip){
+            if (_sources.find(clip.id) != _sources.end())
+                _sources.erase(clip.id);
+
             add_clip(clip);
         });
     }
@@ -73,7 +80,7 @@ namespace core
         LOG_DEBUG(logger, "Next frame, ts = {}s", ts / 1.0s);
         LOG_TRACE_L3(logger, "Begin compose");
 
-        for (auto &track : _timeline.tracks)
+        for (auto &track : _timeline.get_tracks())
         {
             auto clip_idx = track.clip_at(ts);
             

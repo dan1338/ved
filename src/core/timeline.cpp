@@ -9,7 +9,7 @@ namespace core
         for (const auto &clip : clips)
         {
             low = std::min(low, clip.position);
-            high = std::max(high, clip.position + clip.duration);
+            high = std::max(high, clip.end_position());
         }
 
         return {low, high};
@@ -33,7 +33,7 @@ namespace core
 
     void Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
     {
-        Clip clip{timeline->clip_id_counter++, position, 0s, file.duration, file};
+        Clip clip{*this, timeline->_clip_id_counter++, position, 0s, file.duration, file};
 
         if (file.type == MediaFile::STATIC_IMAGE)
         {
@@ -41,12 +41,18 @@ namespace core
         }
 
         clips.push_back(clip);
-        timeline->clip_added_event.notify(*this, clip);
+        timeline->clip_added_event.notify(clip);
     }
 
-    Timeline::Track& Timeline::add_track()
+    void Timeline::Track::move_clip(Clip &clip, core::timestamp new_position)
     {
-        return tracks.emplace_back(Track{this});
+        clip.position = core::align_timestamp(new_position, timeline->_props.frame_dt());
+        timeline->clip_added_event.notify(clip);
+    }
+
+    Timeline::Timeline(WorkspaceProperties &props):
+        _props(props)
+    {
     }
 }
 

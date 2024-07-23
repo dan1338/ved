@@ -6,6 +6,7 @@
 
 #include "ffmpeg/io.h"
 #include "core/time.h"
+#include "core/workspace_properties.h"
 
 #include "logging.h"
 
@@ -14,61 +15,46 @@ namespace core
     class Workspace
     {
     public:
-        struct Properties
-        {
-            int video_width;
-            int video_height;
-            int frame_rate;
+        Workspace(WorkspaceProperties props);
 
-            core::timestamp frame_dt() const
-            {
-                return core::timestamp{core::timestamp(1s).count() / frame_rate};
-            }
-        };
-
-        Workspace(Properties &props);
-
-        Properties &get_props()
+        WorkspaceProperties &get_props()
         {
             return _props;
         }
 
-        core::timestamp align_timestamp(core::timestamp ts) const
-        {
-            return ts - (ts % _props.frame_dt());
-        }
-
-        core::timestamp get_cursor()
+        core::timestamp get_cursor() const
         {
             return _cursor;
         }
 
         void set_cursor(core::timestamp position)
         {
+            LOG_DEBUG(_logger, "Set cursor, ts = {}", position / 1.0s);
+
             _cursor = position;
-            _cursor_dirty = true;
+            _force_preview_refresh = true;
         }
 
-        void clean_cursor()
+        bool should_refresh_preview(bool clear_flag = true)
         {
-            _cursor_dirty = false;
-        }
+            bool value = _force_preview_refresh;
 
-        bool is_cursor_dirty() const
-        {
-            return _cursor_dirty;
+            if (clear_flag)
+                _force_preview_refresh = false;
+
+            return value;
         }
 
         void increment_cursor()
         {
-            _cursor += _frame_dt;
-            _cursor_dirty = true;
+            _cursor += _props.frame_dt();
+            _force_preview_refresh = true;
         }
 
         void decrement_cursor()
         {
-            _cursor -= _frame_dt;
-            _cursor_dirty = true;
+            _cursor -= _props.frame_dt();
+            _force_preview_refresh = true;
 
             if (_cursor < 0s)
                 _cursor = 0s;
@@ -77,16 +63,6 @@ namespace core
         Timeline &get_timeline()
         {
             return _timeline;
-        }
-
-        std::vector<Timeline::Track> &get_tracks()
-        {
-            return _timeline.tracks;
-        }
-
-        Timeline::Track &get_active_track()
-        {
-            return _timeline.tracks[_active_track_idx];
         }
 
         size_t get_active_track_idx() const
@@ -101,11 +77,15 @@ namespace core
 
         void start_preview()
         {
+            LOG_INFO(_logger, "Start preview");
+
             _preview_active = true;
         }
 
         void stop_preview()
         {
+            LOG_INFO(_logger, "Stop preview");
+
             _preview_active = false;
         }
 
@@ -114,23 +94,16 @@ namespace core
             return _preview_active;
         }
 
-        Timeline::Track& add_track()
-        {
-            return _timeline.add_track();
-        }
-
-        void remove_track(uint32_t idx);
-
     private:
-        Properties &_props;
+        logging::Logger *_logger;
+
+        WorkspaceProperties _props;
         Timeline _timeline;
         size_t _active_track_idx{0};
+        bool _force_preview_refresh{false};
         bool _preview_active{false};
 
         core::timestamp _cursor{0s};
-        bool _cursor_dirty{false};
-
-        core::timestamp _frame_dt;
     };
 }
 

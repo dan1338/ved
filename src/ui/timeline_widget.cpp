@@ -21,6 +21,9 @@ namespace ui
 
     void TimelineWidget::show()
     {
+        auto &timeline = _workspace.get_timeline();
+        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
             if (_workspace.is_preview_active())
@@ -42,18 +45,18 @@ namespace ui
             ImGui::Text("Preview FPS: %.1f", 1.0 / (float)(_window._frame_delta / 1.0s));
 
             ImGui::SameLine();
-            ImGui::Text("Clips in active track: %zu", _workspace.get_active_track().clips.size());
+            ImGui::Text("Clips in active track: %zu", active_track.clips.size());
 
             if (ImGui::Button("Add Track"))
             {
-                _workspace.add_track();
+                timeline.add_track();
             }
 
             ImGui::SameLine();
 
             if (ImGui::Button("Remove Track"))
             {
-                _workspace.remove_track(_workspace.get_active_track_idx());
+                timeline.rm_track(_workspace.get_active_track_idx());
             }
 
             show_tracks();
@@ -77,7 +80,7 @@ namespace ui
 
     void TimelineWidget::show_tracks()
     {
-        auto &tracks = _workspace.get_tracks();
+        auto &tracks = _workspace.get_timeline().get_tracks();
 
         if (ImGui::BeginChild("Tracks", {}, 0, 0))
         {
@@ -107,7 +110,8 @@ namespace ui
 
     void TimelineWidget::show_track_clips(size_t track_idx)
     {
-        auto &track = _workspace.get_tracks()[track_idx];
+        auto &timeline = _workspace.get_timeline();
+        auto &track = timeline.get_track(track_idx);
         bool is_focused = (track_idx == _workspace.get_active_track_idx());
 
         const auto win_pos = ImGui::GetWindowPos();
@@ -144,10 +148,7 @@ namespace ui
             {
                 // Still dragging
                 auto &clip = get_dragged_clip();
-                clip.position = _workspace.align_timestamp(_dragging_info.org_position + delta_t);
-
-                auto &timeline = _workspace.get_timeline();
-                timeline.clip_moved_event.notify(track, clip);
+                track.move_clip(clip, _dragging_info.org_position + delta_t);
             }
         }
 
@@ -164,6 +165,7 @@ namespace ui
             }
         }
 
+        // Hover highlight
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
         {
             //color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});

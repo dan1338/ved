@@ -7,6 +7,7 @@
 #include "core/media_source.h"
 #include "core/timeline.h"
 #include "core/workspace.h"
+#include "core/workspace_properties.h"
 #include "core/sync_media_source.h"
 #include "ffmpeg/media_source.h"
 
@@ -17,7 +18,7 @@ namespace core
     class VideoComposer : public MediaSource
     {
     public:
-        VideoComposer(core::Timeline &timeline, core::Workspace::Properties &props);
+        VideoComposer(core::Timeline &timeline, WorkspaceProperties &props);
 
         std::string get_name() override;
 
@@ -31,7 +32,7 @@ namespace core
         void add_clip(Timeline::Clip &clip);
 
         core::Timeline &_timeline;
-        core::Workspace::Properties &_props;
+        core::WorkspaceProperties &_props;
         core::timestamp _frame_dt;
 
         std::unordered_map<Timeline::Clip::ID, SyncMediaSource> _sources;

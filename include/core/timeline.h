@@ -6,18 +6,23 @@
 #include <optional>
 #include <functional>
 
-#include "media_file.h"
-#include "time.h"
-#include "event.h"
+#include "core/media_file.h"
+#include "core/time.h"
+#include "core/event.h"
+#include "core/workspace_properties.h"
 
 namespace core
 {
-    struct Timeline
+    class Timeline
     {
+    public:
+        struct Track;
+
         struct Clip
         {
             using ID = uint32_t;
 
+            Track &track;
             ID id;
 
             core::timestamp position;
@@ -49,15 +54,41 @@ namespace core
             std::optional<size_t> clip_at(core::timestamp position);
 
             void add_clip(core::MediaFile file, core::timestamp position = 0s);
+            void move_clip(Clip &clip, core::timestamp new_position);
         };
 
-        uint32_t clip_id_counter{0};
-        std::vector<Track> tracks;
+        Timeline(WorkspaceProperties &props);
 
-        Track& add_track();
+        std::vector<Track> &get_tracks()
+        {
+            return _tracks;
+        }
 
-        Event<Track&, Clip&> clip_added_event;
-        Event<Track&, Clip&> clip_moved_event;
+        Track &add_track()
+        {
+            return _tracks.emplace_back(Track{this});
+        }
+
+        void rm_track(size_t idx)
+        {
+            _tracks.erase(_tracks.begin() + idx);
+            track_removed_event.notify(idx);
+        }
+
+        Track &get_track(size_t idx)
+        {
+            return _tracks[idx];
+        }
+
+        Event<Clip&> clip_added_event;
+        Event<Clip&> clip_moved_event;
+        Event<size_t> track_removed_event;
+
+    private:
+        WorkspaceProperties &_props;
+
+        uint32_t _clip_id_counter{0};
+        std::vector<Track> _tracks;
     };
 }
 

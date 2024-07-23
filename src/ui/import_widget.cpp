@@ -35,7 +35,9 @@ namespace ui
                 else if (const auto *file = std::get_if<core::io::File>(&ent))
                 {
                     if (ImGui::TreeNodeEx(file->path.filename().c_str(), node_flags) && ImGui::IsItemClicked()) {
-                        _workspace.get_active_track().add_clip(file->open());
+                        auto &timeline = _workspace.get_timeline();
+                        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+                        active_track.add_clip(file->open());
                     }
                 }
             }
