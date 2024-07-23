@@ -27,12 +27,14 @@ namespace core
             return _cursor;
         }
 
-        void set_cursor(core::timestamp position)
+        void set_cursor(core::timestamp position, bool update_flags = true)
         {
             LOG_DEBUG(_logger, "Set cursor, ts = {}", position / 1.0s);
 
             _cursor = position;
-            _force_preview_refresh = true;
+
+            if (update_flags)
+                _force_preview_refresh = true;
         }
 
         bool should_refresh_preview(bool clear_flag = true)

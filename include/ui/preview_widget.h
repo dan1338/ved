@@ -40,7 +40,6 @@ namespace ui
             core::VideoComposer composer;
             AVFrame *last_frame{nullptr};
             std::optional<core::timestamp> last_frame_display_time;
-            core::timestamp frame_shown_duration;
             uint64_t seek_id{0};
 
             using SeekRequest = std::pair<uint64_t, core::timestamp>;

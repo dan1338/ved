@@ -55,6 +55,9 @@ namespace ui
                 _preview.last_frame_display_time.emplace(display_time);
             }
         });
+
+        // Initialize preview worker
+        _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, 0s};
     }
 
     PreviewWidget::~PreviewWidget()
@@ -75,7 +78,6 @@ namespace ui
 
             _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, cursor};
             _preview.last_frame = nullptr;
-            _preview.frame_shown_duration = 0s;
         }
 
         bool should_pull_frame = !_preview.last_frame;
@@ -123,18 +125,17 @@ namespace ui
                 // Discard the frame if it has old seek id. Newer frames OTW
                 if (frame.first < _preview.seek_id)
                 {
-                    av_frame_unref(frame.second);
                     LOG_TRACE_L1(logger, "Frame fetched and discarded");
+                    av_frame_unref(frame.second);
                 }
                 else
                 {
                     if (_preview.last_frame)
                         av_frame_unref(_preview.last_frame);
 
+                    LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", frame.second->pts);
                     _preview.last_frame = frame.second;
-                    _preview.frame_shown_duration = 0s;
-                    _workspace.set_cursor(core::timestamp{_preview.last_frame->pts});
-                    LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", _preview.last_frame->pts);
+                    _workspace.set_cursor(core::timestamp{_preview.last_frame->pts}, false);
 
                     if (!_preview.last_frame_display_time.has_value())
                     {
