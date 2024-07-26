@@ -5,6 +5,56 @@ static auto logger = logging::get_logger("VideoComposer");
 
 namespace core
 {
+    static std::pair<ClipTransform, ClipTransform> find_current_clip_transforms(const Timeline::Clip &clip, const core::timestamp ts)
+    {
+        assert(!clip.transforms.empty());
+
+        const auto rel_ts = ts - clip.position;
+        auto it = clip.transforms.begin();
+
+        // Skip until we're after the transform timestamp
+        while (it != clip.transforms.end() && rel_ts < it->rel_position)
+            it = std::next(it);
+
+        // Ran past the end, go back to last element
+        if (it == clip.transforms.end())
+            it = std::prev(it);
+
+        // Take next or keep it2 same as it
+        auto it2 = std::next(it) != clip.transforms.end()
+            ? std::next(it)
+            : it;
+
+        return {*it, *it2};
+    }
+
+    static void blit_pixels(AVFrame *dst_frame, AVFrame *src_frame, int dst_x, int dst_y)
+    {
+        const auto dst_stride = dst_frame->linesize[0];
+        const auto src_stride = src_frame->linesize[0];
+        unsigned char *dst = dst_frame->data[0];
+        const unsigned char *src = src_frame->data[0];
+
+        for (int i = 0; i < src_frame->height; i++)
+        {
+            for (int j = 0; j < src_frame->width; j++)
+            {
+                int dst_i = i + dst_y;
+                int dst_j = j + dst_x;
+
+                if (dst_i < 0 || dst_i >= dst_frame->height)
+                    continue;
+
+                if (dst_j < 0 || dst_j >= dst_frame->width)
+                    continue;
+
+                dst[dst_i * dst_stride + dst_j * 3 + 0] = src[i * src_stride + j * 3 + 0];
+                dst[dst_i * dst_stride + dst_j * 3 + 1] = src[i * src_stride + j * 3 + 1];
+                dst[dst_i * dst_stride + dst_j * 3 + 2] = src[i * src_stride + j * 3 + 2];
+            }
+        }
+    }
+
     VideoComposer::VideoComposer(core::Timeline &timeline, WorkspaceProperties &props):
         _timeline(timeline),
         _props(props),
@@ -100,14 +150,36 @@ namespace core
                 continue;
             }
 
+            // Only apply passed transform for now
+            // TODO: Implement transform interpolation with various functions
+            const auto [xform1, xform2] = find_current_clip_transforms(clip, ts);
+
+            const auto target_x = (int)(out_frame->width * xform1.translate_x);
+            const auto target_y = (int)(out_frame->height * xform1.translate_y);
+            const auto target_width = (int)(out_frame->width * xform1.scale_x);
+            const auto target_height = (int)(out_frame->height * xform1.scale_y);
+
+            // TODO: Persist temporary frame per track along with sws context
+            AVFrame *tmp_frame = av_frame_alloc();
+            tmp_frame->width = target_width;
+            tmp_frame->height = target_height;
+            tmp_frame->format = AVPixelFormat::AV_PIX_FMT_RGB24;
+
+            if (av_frame_get_buffer(tmp_frame, 0) != 0) {
+                throw std::runtime_error("av_frame_get_buffer @ render");
+            }
+
             sws = sws_getCachedContext(sws,
                 clip_frame->width, clip_frame->height, (AVPixelFormat)clip_frame->format,
-                out_frame->width, out_frame->height, (AVPixelFormat)out_frame->format,
+                target_width, target_height, (AVPixelFormat)out_frame->format,
                 0, nullptr, nullptr, nullptr
             );
 
-            sws_scale(sws, clip_frame->data, clip_frame->linesize, 0, clip_frame->height, out_frame->data, out_frame->linesize);
+            sws_scale(sws, clip_frame->data, clip_frame->linesize, 0, clip_frame->height, tmp_frame->data, tmp_frame->linesize);
             av_frame_unref(clip_frame);
+
+            blit_pixels(out_frame, tmp_frame, target_x, target_y);
+            av_frame_unref(tmp_frame);
         }
 
         LOG_TRACE_L3(logger, "End compose");

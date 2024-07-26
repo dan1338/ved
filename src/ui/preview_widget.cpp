@@ -156,6 +156,7 @@ namespace ui
             }
         }
 
+        // Draw preview
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
             auto *draw_list = ImGui::GetWindowDrawList();
@@ -170,6 +171,36 @@ namespace ui
 
                 glBindTexture(GL_TEXTURE_2D, _cb_user.texture);
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->data[0]);
+            }
+
+            // Mouse interactions
+            if (ImGui::IsWindowHovered())
+            {
+                if (const auto delta = ImGui::GetMouseDragDelta(); !(delta.x == 0.0 && delta.y == 0.0))
+                {
+                    ImGui::ResetMouseDragDelta();
+
+                    auto &timeline = _workspace.get_timeline();
+                    auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+                    const auto clip_idx = active_track.clip_at(_workspace.get_cursor());
+
+                    if (clip_idx.has_value())
+                    {
+                        auto &clip = active_track.clips[*clip_idx];
+
+                        const auto win_size = ImGui::GetWindowSize();
+
+                        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+                        {
+                            const auto s = (delta.y / win_size.y) * 0.5;
+                            active_track.scale_clip(clip, s, s);
+                        }
+                        else
+                        {
+                            active_track.translate_clip(clip, delta.x / win_size.x, delta.y / win_size.y);
+                        }
+                    }
+                }
             }
 
             draw_list->PushClipRectFullScreen();

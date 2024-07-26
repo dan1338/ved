@@ -40,6 +40,8 @@ namespace core
             clip.duration = 1s;
         }
 
+        clip.transforms.emplace(ClipTransform{});
+
         clips.push_back(clip);
         timeline->clip_added_event.notify(clip);
     }
@@ -48,6 +50,32 @@ namespace core
     {
         clip.position = core::align_timestamp(new_position, timeline->_props.frame_dt());
         timeline->clip_added_event.notify(clip);
+    }
+
+    void Timeline::Track::translate_clip(Clip &clip, float dx, float dy)
+    {
+        auto &xform = const_cast<ClipTransform&>(*clip.transforms.begin());
+        xform.translate_x += dx;
+        xform.translate_y += dy;
+
+        timeline->clip_transformed_event.notify(clip);
+    }
+
+    void Timeline::Track::scale_clip(Clip &clip, float dx, float dy)
+    {
+        auto &xform = const_cast<ClipTransform&>(*clip.transforms.begin());
+        xform.scale_x += dx;
+        xform.scale_y += dy;
+
+        timeline->clip_transformed_event.notify(clip);
+    }
+
+    void Timeline::Track::rotate_clip(Clip &clip, float dr)
+    {
+        auto &xform = const_cast<ClipTransform&>(*clip.transforms.begin());
+        xform.rotation += dr;
+
+        timeline->clip_transformed_event.notify(clip);
     }
 
     Timeline::Timeline(WorkspaceProperties &props):

@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <chrono>
 #include <vector>
+#include <set>
 #include <optional>
 #include <functional>
 
@@ -13,6 +14,24 @@
 
 namespace core
 {
+    struct ClipTransform
+    {
+        core::timestamp rel_position{0s};
+
+        float translate_x{0.0};
+        float translate_y{0.0};
+
+        float scale_x{1.0};
+        float scale_y{1.0};
+
+        float rotation{0.0};
+
+        bool operator<(const ClipTransform &rhs) const
+        {
+            return rel_position < rhs.rel_position;
+        }
+    };
+
     class Timeline
     {
     public:
@@ -31,6 +50,8 @@ namespace core
             core::timestamp duration;
 
             MediaFile file;
+
+            std::set<ClipTransform> transforms;
 
             core::timestamp end_position() const 
             {
@@ -55,6 +76,10 @@ namespace core
 
             void add_clip(core::MediaFile file, core::timestamp position = 0s);
             void move_clip(Clip &clip, core::timestamp new_position);
+
+            void translate_clip(Clip &clip, float dx, float dy);
+            void scale_clip(Clip &clip, float dx, float dy);
+            void rotate_clip(Clip &clip, float dr);
         };
 
         Timeline(WorkspaceProperties &props);
@@ -82,6 +107,7 @@ namespace core
 
         Event<Clip&> clip_added_event;
         Event<Clip&> clip_moved_event;
+        Event<Clip&> clip_transformed_event;
         Event<size_t> track_removed_event;
 
     private:
