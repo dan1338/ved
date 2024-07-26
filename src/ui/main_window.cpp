@@ -71,7 +71,7 @@ namespace ui
     {
         set_imgui_style(style);
 
-        _timeline_props.track_height = 80.0f;
+        _timeline_props.track_height = 65.0f;
         _timeline_props.visible_timespan = 45s;
         _timeline_props.time_offset = 0s;
 

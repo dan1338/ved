@@ -52,13 +52,6 @@ namespace ui
                 timeline.add_track();
             }
 
-            ImGui::SameLine();
-
-            if (ImGui::Button("Remove Track"))
-            {
-                timeline.rm_track(_workspace.get_active_track_idx());
-            }
-
             show_tracks();
         }
 
@@ -73,25 +66,56 @@ namespace ui
         const auto win_size = ImGui::GetWindowSize();
 
         const auto cursor_color = ImGui::GetColorU32({0.8, 0.8, 0.8, 1.0});
-        float cursor_x = win_pos.x + timestamp_to_winpos(_workspace.get_cursor(), win_size);
 
+        float cursor_x = _track_window_x + timestamp_to_winpos(_workspace.get_cursor(), {_track_window_w, 0.0});
         fg_draw_list->AddLine({cursor_x, win_pos.y}, {cursor_x, win_pos.y + win_size.y}, cursor_color, 3.0);
     }
 
     void TimelineWidget::show_tracks()
     {
-        auto &tracks = _workspace.get_timeline().get_tracks();
+        auto &timeline = _workspace.get_timeline();
+        auto &tracks = timeline.get_tracks();
+
+        // Emplace track index into here to remove track
+        // Make the assumtion that only one track can be removed per frame
+        std::optional<size_t> track_to_remove;
 
         if (ImGui::BeginChild("Tracks", {}, 0, 0))
         {
-            // Draw cursor on top of tracks, requires use of ForegroundDrawList to overlay child windows
-            draw_cursor();
-
             for (size_t i = 0; i < tracks.size(); i++)
             {
+                bool is_focused = (i == _workspace.get_active_track_idx());
                 std::string name{fmt::format("Track {}", i)};
 
-                if (ImGui::BeginChild(name.c_str(), {0.0, _props.track_height}, _child_flags, 0))
+                if (is_focused) ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.6, 0.3, 0.3, 0.8});
+
+                // Track header
+                if (ImGui::BeginChild(name.c_str(), {80.0, _props.track_height}, _child_flags, 0))
+                {
+                    ImGui::Text("Track %d", (int)i);
+
+                    ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
+
+                    if (ImGui::Button("X", {-1.0, -1.0}))
+                    {
+                        track_to_remove.emplace(i);
+                    }
+
+                    ImGui::PopStyleColor();
+
+                    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                    {
+                        _workspace.set_active_track(i);
+                    }
+                }
+
+                ImGui::EndChild();
+                if (is_focused) ImGui::PopStyleColor();
+
+                ImGui::SameLine();
+
+                // Track timeline
+                if (ImGui::BeginChild((name + "_clips").c_str(), {0.0, _props.track_height}, _child_flags, 0))
                 {
                     show_track_clips(i);
 
@@ -102,10 +126,20 @@ namespace ui
                 }
 
                 ImGui::EndChild();
+
             }
+
+            // Draw cursor on top of tracks, requires use of ForegroundDrawList to overlay child windows
+            draw_cursor();
         }
 
         ImGui::EndChild();
+
+        // Remove track if asked to
+        if (track_to_remove.has_value() && tracks.size() > 1)
+        {
+            timeline.rm_track(*track_to_remove);
+        }
     }
 
     void TimelineWidget::show_track_clips(size_t track_idx)
@@ -116,6 +150,10 @@ namespace ui
 
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();
+
+        // Save dimensions for drawing the cursor
+        _track_window_x = win_pos.x;
+        _track_window_w = win_size.x;
 
         // Begin dragging clip
         if (!_dragging_info.active && ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
@@ -176,7 +214,7 @@ namespace ui
         const float x = win_pos.x;
         const float y = win_pos.y;
         const float w = win_size.x;
-        const float h = 100.0;
+        const float h = _props.track_height;
 
         int bg_color = ImGui::GetColorU32({0.3, 0.3, 0.3, 1.0});
         int clip_color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
@@ -201,7 +239,6 @@ namespace ui
             const auto [_, fontSize] = ImGui::CalcTextSize("");
             int padding = 8;
             draw_list->AddText({clip_x + padding, y + h - (fontSize * 2) - padding}, 0xffffffff, path.filename().c_str(), nullptr);
-
         }
     }
 }

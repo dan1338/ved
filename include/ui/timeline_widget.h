@@ -35,6 +35,12 @@ namespace ui
         core::Workspace &_workspace;
         Properties &_props;
 
+        // We save the last track windows x,w
+        // here as a workaround for ImGui::FindWindow not exactly working :)
+        // Used for drawing the cursor on top of tracks
+        float _track_window_x{0.0f};
+        float _track_window_w{0.0f};
+
         struct DraggingInfo
         {
             bool active{false};
