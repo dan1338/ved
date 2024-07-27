@@ -176,31 +176,52 @@ namespace ui
             // Mouse interactions
             if (ImGui::IsWindowHovered())
             {
+                // Start dragging if clicked
+                if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                {
+                    _dragging = true;
+                }
+
+                // Stop dragging if relased
+                if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    _dragging = false;
+                }
+
                 if (const auto delta = ImGui::GetMouseDragDelta(); !(delta.x == 0.0 && delta.y == 0.0))
                 {
-                    ImGui::ResetMouseDragDelta();
-
-                    auto &timeline = _workspace.get_timeline();
-                    auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
-                    const auto clip_idx = active_track.clip_at(_workspace.get_cursor());
-
-                    if (clip_idx.has_value())
+                    // Start dragging if clicked on this window
+                    if (_dragging)
                     {
-                        auto &clip = active_track.clips[*clip_idx];
+                        ImGui::ResetMouseDragDelta();
 
-                        const auto win_size = ImGui::GetWindowSize();
+                        auto &timeline = _workspace.get_timeline();
+                        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+                        const auto clip_idx = active_track.clip_at(_workspace.get_cursor());
 
-                        if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+                        if (clip_idx.has_value())
                         {
-                            const auto s = (delta.y / win_size.y) * 0.5;
-                            active_track.scale_clip(clip, s, s);
-                        }
-                        else
-                        {
-                            active_track.translate_clip(clip, delta.x / win_size.x, delta.y / win_size.y);
+                            auto &clip = active_track.clips[*clip_idx];
+
+                            const auto win_size = ImGui::GetWindowSize();
+
+                            if (ImGui::IsKeyDown(ImGuiKey_LeftCtrl))
+                            {
+                                const auto s = (delta.y / win_size.y) * 0.5;
+                                active_track.scale_clip(clip, s, s);
+                            }
+                            else
+                            {
+                                active_track.translate_clip(clip, delta.x / win_size.x, delta.y / win_size.y);
+                            }
                         }
                     }
                 }
+            }
+            else
+            {
+                // Stop dragging if mose escaped window
+                _dragging = false;
             }
 
             draw_list->PushClipRectFullScreen();
