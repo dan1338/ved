@@ -49,7 +49,7 @@ namespace core
     void Timeline::Track::move_clip(Clip &clip, core::timestamp new_position)
     {
         clip.position = core::align_timestamp(new_position, timeline->_props.frame_dt());
-        timeline->clip_added_event.notify(clip);
+        timeline->clip_moved_event.notify(clip);
     }
 
     void Timeline::Track::translate_clip(Clip &clip, float dx, float dy)

@@ -155,38 +155,51 @@ namespace ui
         _track_window_x = win_pos.x;
         _track_window_w = win_size.x;
 
-        // Begin dragging clip
-        if (!_dragging_info.active && ImGui::IsWindowHovered() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+        if (ImGui::IsWindowHovered())
         {
-            float track_x = (ImGui::GetMousePos().x - win_pos.x);
-            core::timestamp position = _props.time_offset + winpos_to_timestamp({track_x, 0}, win_size);
-
-            auto clip_idx = track.clip_at(position);
-
-            if (clip_idx.has_value()) {
-                _dragging_info.active = true;
-                _dragging_info.track_idx = track_idx;
-                _dragging_info.clip_idx = *clip_idx;
-                _dragging_info.org_position = get_dragged_clip().position;
-            }
-        }
-
-        // Update dragged clip / Finish dragging
-        if (_dragging_info.active)
-        {
-            auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-            core::timestamp delta_t = winpos_to_timestamp(delta, win_size);
-
-            if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+            // Begin dragging clip
+            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
-                // Clip has beed dropped
-                _dragging_info.active = false;
+                const float track_x = (ImGui::GetMousePos().x - win_pos.x);
+                const core::timestamp position = _props.time_offset + winpos_to_timestamp({track_x, 0}, win_size);
+
+                const auto clip_idx = track.clip_at(position);
+
+                if (clip_idx.has_value())
+                {
+                    LOG_INFO(logger, "Start dragging clip @ {}", *clip_idx);
+                    _dragging_state = BeginDragging{track_idx, *clip_idx, track.clips[*clip_idx].position};
+                }
             }
-            else
+
+            // Start handling dragging
+            if (std::holds_alternative<BeginDragging>(_dragging_state) && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
             {
-                // Still dragging
-                auto &clip = get_dragged_clip();
-                track.move_clip(clip, _dragging_info.org_position + delta_t);
+                LOG_INFO(logger, "Continue dragging clip");
+                _dragging_state = ContinueDragging{std::get<BeginDragging>(_dragging_state)};
+            }
+
+            // Update dragged clip / Finish dragging
+            if (std::holds_alternative<ContinueDragging>(_dragging_state))
+            {
+                const auto &cont_dragging = std::get<ContinueDragging>(_dragging_state);
+
+                const auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
+                const core::timestamp delta_t = winpos_to_timestamp(delta, win_size);
+
+                if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+                {
+                    // Clip has beed dropped
+                    LOG_INFO(logger, "Stop dragging clip");
+                    _dragging_state = std::monostate{};
+                }
+                else
+                {
+                    // Still dragging
+                    auto &clip = get_dragged_clip();
+                    LOG_INFO(logger, "Update dragging clip {}", (cont_dragging.org_position + delta_t).count());
+                    track.move_clip(clip, cont_dragging.org_position + delta_t);
+                }
             }
         }
 

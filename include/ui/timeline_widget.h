@@ -9,6 +9,8 @@
 #include "ui/widget_ids.h"
 #include "ui/widget.h"
 
+#include <variant>
+
 namespace ui
 {
     class MainWindow;
@@ -43,19 +45,29 @@ namespace ui
 
         struct DraggingInfo
         {
-            bool active{false};
-
-            int track_idx;
-            int clip_idx;
-
+            size_t track_idx;
+            size_t clip_idx;
             core::timestamp org_position;
-        } _dragging_info;
+        };
+
+        struct BeginDragging : public DraggingInfo {};
+        struct ContinueDragging : public DraggingInfo {};
+
+        using DraggingState = std::variant<std::monostate, BeginDragging, ContinueDragging>;
+        DraggingState _dragging_state;
 
         core::Timeline::Clip &get_dragged_clip()
         {
-            auto &track = _workspace.get_timeline().get_track(_dragging_info.track_idx);
+            DraggingInfo *info{nullptr};
 
-            return track.clips[_dragging_info.clip_idx];
+            if (std::holds_alternative<BeginDragging>(_dragging_state))
+                info = &std::get<BeginDragging>(_dragging_state);
+            if (std::holds_alternative<ContinueDragging>(_dragging_state))
+                info = &std::get<ContinueDragging>(_dragging_state);
+
+            auto &track = _workspace.get_timeline().get_track(info->track_idx);
+
+            return track.clips[info->clip_idx];
         }
 
         core::timestamp winpos_to_timestamp(ImVec2 win_pos, ImVec2 win_size)
