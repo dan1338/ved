@@ -64,11 +64,32 @@ namespace core
 
         for (auto &track : _timeline.get_tracks())
         {
+            add_track(track);
+
             for (auto &clip : track.clips)
             {
                 add_clip(clip);
             }
         }
+
+        // TODO: Thread safety
+        // I've been putting this off for a little long now
+        // but there is the question of synchronisation.
+        //
+        // Rn we're using this in the preview worker thread and
+        // all the callbacks come from main thread, technically a data race
+        //
+        // Option 1, have queues which hold these events and we pop and handle them
+        // each time on next_frame (imo too heavy)
+        //
+        // Option 2, throw in a mutex held throughout the duration of next_frame
+        // and call it a day (love it, but I don't like the idea that VideoComposer
+        // inherently has to handle multithreading)
+        //
+        // Ideally we should separate the VideoComposer from the software composition
+        // logic via DI, to allow for GPU/"shader only" composition as well.
+        // With that change some better solutions might arise as we'd hopefuly remove
+        // all softcompose specific data that has to keep up with the timeline changes
 
         _timeline.clip_added_event.add_callback([this](auto &clip){
             add_clip(clip);
@@ -79,6 +100,10 @@ namespace core
                 _sources.erase(clip.id);
 
             add_clip(clip);
+        });
+
+        _timeline.track_added_event.add_callback([this](size_t idx){
+            add_track(_timeline.get_track(idx));
         });
     }
 
@@ -113,8 +138,6 @@ namespace core
         AVFrame *out_frame = av_frame_alloc();
         out_frame->pts = ts.count();
         out_frame->duration = _frame_dt.count();
-
-        static SwsContext *sws{nullptr};
 
         out_frame->width = _props.video_width;
         out_frame->height = _props.video_height;
@@ -159,23 +182,9 @@ namespace core
             const auto target_width = (int)(out_frame->width * xform1.scale_x);
             const auto target_height = (int)(out_frame->height * xform1.scale_y);
 
-            // TODO: Persist temporary frame per track along with sws context
-            AVFrame *tmp_frame = av_frame_alloc();
-            tmp_frame->width = target_width;
-            tmp_frame->height = target_height;
-            tmp_frame->format = AVPixelFormat::AV_PIX_FMT_RGB24;
+            auto &frame_converter = _frame_converters.at(track.id);
 
-            if (av_frame_get_buffer(tmp_frame, 0) != 0) {
-                throw std::runtime_error("av_frame_get_buffer @ render");
-            }
-
-            sws = sws_getCachedContext(sws,
-                clip_frame->width, clip_frame->height, (AVPixelFormat)clip_frame->format,
-                target_width, target_height, (AVPixelFormat)out_frame->format,
-                0, nullptr, nullptr, nullptr
-            );
-
-            sws_scale(sws, clip_frame->data, clip_frame->linesize, 0, clip_frame->height, tmp_frame->data, tmp_frame->linesize);
+            AVFrame *tmp_frame = frame_converter.convert(clip_frame, target_width, target_height);
             av_frame_unref(clip_frame);
 
             blit_pixels(out_frame, tmp_frame, target_x, target_y);
@@ -203,6 +212,11 @@ namespace core
             return;
 
         _sources.emplace(clip.id, clip.file.path);
+    }
+
+    void VideoComposer::add_track(Timeline::Track &track)
+    {
+        _frame_converters.emplace(track.id, ffmpeg::FrameConverter(AVPixelFormat::AV_PIX_FMT_RGB24));
     }
 }
 

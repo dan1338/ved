@@ -41,8 +41,8 @@ namespace core
         {
             using ID = uint32_t;
 
-            Track &track;
             ID id;
+            Track &track;
 
             core::timestamp position;
 
@@ -61,11 +61,14 @@ namespace core
 
         struct Track
         {
-            Track(Timeline *timeline): 
-                timeline(timeline)
+            using ID = uint32_t;
+
+            Track(ID id, Timeline *timeline): 
+                id(id), timeline(timeline)
             {
             }
 
+            ID id;
             Timeline *timeline;
             std::vector<Clip> clips;
 
@@ -91,7 +94,10 @@ namespace core
 
         Track &add_track()
         {
-            return _tracks.emplace_back(Track{this});
+            auto &track =  _tracks.emplace_back(Track{_track_id_counter++, this});
+            track_added_event.notify(_tracks.size() - 1);
+
+            return track;
         }
 
         void rm_track(size_t idx)
@@ -108,12 +114,14 @@ namespace core
         Event<Clip&> clip_added_event;
         Event<Clip&> clip_moved_event;
         Event<Clip&> clip_transformed_event;
+        Event<size_t> track_added_event;
         Event<size_t> track_removed_event;
 
     private:
         WorkspaceProperties &_props;
 
         uint32_t _clip_id_counter{0};
+        uint32_t _track_id_counter{0};
         std::vector<Track> _tracks;
     };
 }

@@ -50,6 +50,7 @@ add_executable(ved
     src/main.cpp
     src/logging.cpp
     src/ffmpeg/io.cpp
+    src/ffmpeg/frame_converter.cpp
     src/ffmpeg/media_source.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp

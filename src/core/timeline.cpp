@@ -33,7 +33,7 @@ namespace core
 
     void Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
     {
-        Clip clip{*this, timeline->_clip_id_counter++, position, 0s, file.duration, file};
+        Clip clip{timeline->_clip_id_counter++, *this, position, 0s, file.duration, file};
 
         if (file.type == MediaFile::STATIC_IMAGE)
         {

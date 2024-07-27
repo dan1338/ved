@@ -6,12 +6,11 @@
 #include "core/time.h"
 #include "core/media_source.h"
 #include "core/timeline.h"
-#include "core/workspace.h"
 #include "core/workspace_properties.h"
 #include "core/sync_media_source.h"
-#include "ffmpeg/media_source.h"
 
-#include "magic_enum.hpp"
+#include "ffmpeg/media_source.h"
+#include "ffmpeg/frame_converter.h"
 
 namespace core
 {
@@ -30,14 +29,29 @@ namespace core
 
     private:
         void add_clip(Timeline::Clip &clip);
+        void add_track(Timeline::Track &track);
 
         core::Timeline &_timeline;
         core::WorkspaceProperties &_props;
         core::timestamp _frame_dt;
 
+        // Each clip has a SyncMediaReader which allows for fetching a frame
+        // at a precise timestamp.
+        //
+        // The reader caches previously fetched frames and will return them
+        // without decoding, if a frame at that timestamp has already been fetched
+        // and hasn't yet been evicted.
+        //
+        // It's important that the timestamps are aligned to the workspace frame rate,
+        // to ensure cache hits.
         std::unordered_map<Timeline::Clip::ID, SyncMediaSource> _sources;
 
-        using MediaSourcePtr = std::unique_ptr<MediaSource>;
+        // Each track has it's own FrameConverter for the purpose of transforming
+        // its current frame according to the ClipTransformation
+        //
+        // Having one converter per track strikes a balance between number of allocated
+        // temporary frames and frequency of reallocation due to size change
+        std::unordered_map<Timeline::Track::ID, ffmpeg::FrameConverter> _frame_converters;
 
         struct Composition
         {
