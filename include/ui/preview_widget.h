@@ -47,7 +47,7 @@ namespace ui
             msd::channel<SeekRequest> in_seek;
             
             using PreviewFrame = std::pair<uint64_t, AVFrame*>;
-            msd::channel<PreviewFrame> out_frames{10};
+            msd::channel<PreviewFrame> out_frames{1};
 
             std::thread thread{[this](){
                 auto logger = logging::get_logger("PreviewWidget::worker");
