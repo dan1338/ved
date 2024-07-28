@@ -92,10 +92,13 @@ namespace core
         // all softcompose specific data that has to keep up with the timeline changes
 
         _timeline.clip_added_event.add_callback([this](auto &clip){
+            std::lock_guard<std::mutex> lock(_mutex);
             add_clip(clip);
         });
 
         _timeline.clip_moved_event.add_callback([this](auto &clip){
+            std::lock_guard<std::mutex> lock(_mutex);
+
             if (_sources.find(clip.id) != _sources.end())
                 _sources.erase(clip.id);
 
@@ -103,6 +106,7 @@ namespace core
         });
 
         _timeline.track_added_event.add_callback([this](size_t idx){
+            std::lock_guard<std::mutex> lock(_mutex);
             add_track(_timeline.get_track(idx));
         });
     }
@@ -133,6 +137,8 @@ namespace core
 
     AVFrame* VideoComposer::next_frame(AVMediaType frame_type)
     {
+        std::lock_guard<std::mutex> lock(_mutex);
+
         auto &ts = _composition->last_position;
 
         AVFrame *out_frame = av_frame_alloc();

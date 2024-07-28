@@ -2,6 +2,7 @@
 
 #include <memory>
 #include <unordered_map>
+#include <mutex>
 
 #include "core/time.h"
 #include "core/media_source.h"
@@ -34,6 +35,8 @@ namespace core
         core::Timeline &_timeline;
         core::WorkspaceProperties &_props;
         core::timestamp _frame_dt;
+
+        std::mutex _mutex;
 
         // Each clip has a SyncMediaReader which allows for fetching a frame
         // at a precise timestamp.
