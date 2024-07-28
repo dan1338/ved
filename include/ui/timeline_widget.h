@@ -51,7 +51,11 @@ namespace ui
         };
 
         struct BeginDragging : public DraggingInfo {};
-        struct ContinueDragging : public DraggingInfo {};
+
+        struct ContinueDragging : public DraggingInfo
+        {
+            core::timestamp last_delta;
+        };
 
         using DraggingState = std::variant<std::monostate, BeginDragging, ContinueDragging>;
         DraggingState _dragging_state;

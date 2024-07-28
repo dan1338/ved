@@ -182,7 +182,7 @@ namespace ui
             // Update dragged clip / Finish dragging
             if (std::holds_alternative<ContinueDragging>(_dragging_state))
             {
-                const auto &cont_dragging = std::get<ContinueDragging>(_dragging_state);
+                auto &cont_dragging = std::get<ContinueDragging>(_dragging_state);
 
                 const auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
                 const core::timestamp delta_t = winpos_to_timestamp(delta, win_size);
@@ -193,12 +193,15 @@ namespace ui
                     LOG_INFO(logger, "Stop dragging clip");
                     _dragging_state = std::monostate{};
                 }
-                else
+                else if (delta_t != cont_dragging.last_delta)
                 {
                     // Still dragging
-                    auto &clip = get_dragged_clip();
                     LOG_INFO(logger, "Update dragging clip {}", (cont_dragging.org_position + delta_t).count());
+
+                    auto &clip = get_dragged_clip();
                     track.move_clip(clip, cont_dragging.org_position + delta_t);
+
+                    cont_dragging.last_delta = delta_t;
                 }
             }
         }
