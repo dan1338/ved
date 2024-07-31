@@ -31,7 +31,22 @@ namespace core
         {
             LOG_DEBUG(_logger, "Set cursor, ts = {}", position / 1.0s);
 
-            _cursor = position;
+            if (position < 0s)
+            {
+                _cursor = 0s;
+            }
+            else if (position > _timeline.get_duration())
+            {
+                _cursor = _timeline.get_duration();
+
+                // If we hit the end while playing, stop
+                if (_preview_active)
+                    stop_preview();
+            }
+            else
+            {
+                _cursor = position;
+            }
 
             if (update_flags)
                 _force_preview_refresh = true;
@@ -51,6 +66,9 @@ namespace core
         {
             _cursor += _props.frame_dt();
             _force_preview_refresh = true;
+
+            if (_cursor > _timeline.get_duration())
+                _cursor = _timeline.get_duration();
         }
 
         void decrement_cursor()

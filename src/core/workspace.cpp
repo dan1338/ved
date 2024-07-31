@@ -24,6 +24,11 @@ namespace core
                 --_active_track_idx;
         });
 
+        _timeline.duration_changed_event.add_callback([this](auto ts) {
+            if (_cursor > ts)
+                set_cursor(_timeline.get_duration());
+        });
+
         _timeline.add_track(); // Default track
     }
 }

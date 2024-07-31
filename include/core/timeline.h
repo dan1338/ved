@@ -119,6 +119,7 @@ namespace core
         void set_duration(core::timestamp ts)
         {
             _duration = ts;
+            duration_changed_event.notify(ts);
         }
 
         Event<Clip&> clip_added_event;
@@ -126,6 +127,7 @@ namespace core
         Event<Clip&> clip_transformed_event;
         Event<size_t> track_added_event;
         Event<size_t> track_removed_event;
+        Event<core::timestamp> duration_changed_event;
 
     private:
         WorkspaceProperties &_props;
