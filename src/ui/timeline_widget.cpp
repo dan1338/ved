@@ -80,7 +80,7 @@ namespace ui
         // Make the assumtion that only one track can be removed per frame
         std::optional<size_t> track_to_remove;
 
-        if (ImGui::BeginChild("Tracks", {}, 0, 0))
+        if (ImGui::BeginChild("Tracks", {}, 0, ImGuiWindowFlags_AlwaysHorizontalScrollbar))
         {
             for (size_t i = 0; i < tracks.size(); i++)
             {
@@ -224,6 +224,11 @@ namespace ui
         {
             //color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
         }
+
+        ImGui::Scrollbar(ImGuiAxis_X);
+        float scroll_x = ImGui::GetScrollX();
+
+        LOG_INFO(logger, "scroll_x {}", scroll_x);
 
         // Draw clips
         auto *draw_list = ImGui::GetWindowDrawList();
