@@ -111,6 +111,16 @@ namespace core
             return _tracks[idx];
         }
 
+        core::timestamp get_duration() const
+        {
+            return _duration;
+        }
+
+        void set_duration(core::timestamp ts)
+        {
+            _duration = ts;
+        }
+
         Event<Clip&> clip_added_event;
         Event<Clip&> clip_moved_event;
         Event<Clip&> clip_transformed_event;
@@ -119,6 +129,7 @@ namespace core
 
     private:
         WorkspaceProperties &_props;
+        core::timestamp _duration{30s};
 
         uint32_t _clip_id_counter{0};
         uint32_t _track_id_counter{0};

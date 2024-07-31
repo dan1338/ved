@@ -52,6 +52,24 @@ namespace ui
                 timeline.add_track();
             }
 
+            ImGui::SetNextItemWidth(100.0);
+            ImGui::SameLine();
+
+            float input_cursor = _workspace.get_cursor() / 1.0s;
+            if (ImGui::InputFloat("Cursor (seconds)", &input_cursor))
+            {
+                _workspace.set_cursor(core::timestamp_from_double(input_cursor));
+            }
+
+            ImGui::SetNextItemWidth(100.0);
+            ImGui::SameLine();
+
+            float input_duration = timeline.get_duration() / 1.0s;
+            if (ImGui::InputFloat("Duration (seconds)", &input_duration))
+            {
+                timeline.set_duration(core::timestamp_from_double(input_duration));
+            }
+
             show_tracks();
         }
 
