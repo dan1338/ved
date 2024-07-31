@@ -56,7 +56,7 @@ namespace ui
             ImGui::SameLine();
 
             float input_cursor = _workspace.get_cursor() / 1.0s;
-            if (ImGui::InputFloat("Cursor (seconds)", &input_cursor))
+            if (ImGui::InputFloat("Cursor (seconds)", &input_cursor, 0.0f, 0.0f, "%.2f", ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 _workspace.set_cursor(core::timestamp_from_double(input_cursor));
             }
@@ -65,7 +65,7 @@ namespace ui
             ImGui::SameLine();
 
             float input_duration = timeline.get_duration() / 1.0s;
-            if (ImGui::InputFloat("Duration (seconds)", &input_duration))
+            if (ImGui::InputFloat("Duration (seconds)", &input_duration, 0.0f, 0.0f, "%.2f", ImGuiInputTextFlags_EnterReturnsTrue))
             {
                 timeline.set_duration(core::timestamp_from_double(input_duration));
             }
