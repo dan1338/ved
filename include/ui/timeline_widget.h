@@ -40,6 +40,7 @@ namespace ui
         // We save the last track windows x,w
         // here as a workaround for ImGui::FindWindow not exactly working :)
         // Used for drawing the cursor on top of tracks
+        float _clip_window_x{0.0f};
         float _track_window_x{0.0f};
         float _track_window_w{0.0f};
 
@@ -87,7 +88,7 @@ namespace ui
         }
 
         void show_tracks();
-        void show_track_clips(size_t track_idx);
+        void show_track_clips(size_t track_idx, float parent_width);
         void draw_cursor();
     };
 }

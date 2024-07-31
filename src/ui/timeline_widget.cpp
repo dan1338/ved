@@ -78,14 +78,17 @@ namespace ui
 
     void TimelineWidget::draw_cursor()
     {
-        auto *fg_draw_list = ImGui::GetForegroundDrawList();
-
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();
 
+        float cursor_x = _clip_window_x + timestamp_to_winpos(_workspace.get_cursor(), {_track_window_w, 0.0});
+
+        if (cursor_x < _track_window_x || cursor_x > _track_window_x + _track_window_w)
+            return;
+
         const auto cursor_color = ImGui::GetColorU32({0.8, 0.8, 0.8, 1.0});
 
-        float cursor_x = _track_window_x + timestamp_to_winpos(_workspace.get_cursor(), {_track_window_w, 0.0});
+        auto *fg_draw_list = ImGui::GetForegroundDrawList();
         fg_draw_list->AddLine({cursor_x, win_pos.y}, {cursor_x, win_pos.y + win_size.y}, cursor_color, 3.0);
     }
 
@@ -98,17 +101,21 @@ namespace ui
         // Make the assumtion that only one track can be removed per frame
         std::optional<size_t> track_to_remove;
 
-        if (ImGui::BeginChild("Tracks", {}, 0, ImGuiWindowFlags_AlwaysHorizontalScrollbar))
+        if (ImGui::BeginChild("Tracks", {}, 0, 0))
         {
+            ImGui::Columns(2, "Track columns", false);
+            ImGui::SetColumnWidth(0, 100.0);
+
+            // Draw headers
             for (size_t i = 0; i < tracks.size(); i++)
             {
                 bool is_focused = (i == _workspace.get_active_track_idx());
-                std::string name{fmt::format("Track {}", i)};
+                std::string name{fmt::format("Track header {}", i)};
 
                 if (is_focused) ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.6, 0.3, 0.3, 0.8});
 
                 // Track header
-                if (ImGui::BeginChild(name.c_str(), {80.0, _props.track_height}, _child_flags, 0))
+                if (ImGui::BeginChild(name.c_str(), {0.0, _props.track_height}, _child_flags, 0))
                 {
                     ImGui::Text("Track %d", (int)i);
 
@@ -128,24 +135,45 @@ namespace ui
                 }
 
                 ImGui::EndChild();
+
                 if (is_focused) ImGui::PopStyleColor();
-
-                ImGui::SameLine();
-
-                // Track timeline
-                if (ImGui::BeginChild((name + "_clips").c_str(), {0.0, _props.track_height}, _child_flags, 0))
-                {
-                    show_track_clips(i);
-
-                    if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
-                    {
-                        _workspace.set_active_track(i);
-                    }
-                }
-
-                ImGui::EndChild();
-
             }
+
+            ImGui::NextColumn();
+
+            // Draw clips
+            if (ImGui::BeginChild("Track clips", {}, ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_AlwaysHorizontalScrollbar))
+            {
+                for (size_t i = 0; i < tracks.size(); i++)
+                {
+                    bool is_focused = (i == _workspace.get_active_track_idx());
+                    std::string name{fmt::format("Track clips {}", i)};
+
+                    const auto win_pos = ImGui::GetWindowPos();
+                    const auto win_size = ImGui::GetWindowSize();
+
+                    // Save dimensions for drawing the cursor
+                    _track_window_x = win_pos.x;
+                    _track_window_w = win_size.x;
+
+                    const float total_width = timestamp_to_winpos(timeline.get_duration(), win_size);
+
+                    // Track timeline
+                    if (ImGui::BeginChild((name + "_clips").c_str(), {total_width, _props.track_height}, _child_flags, 0))
+                    {
+                        show_track_clips(i, win_size.x);
+
+                        if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+                        {
+                            _workspace.set_active_track(i);
+                        }
+                    }
+
+                    ImGui::EndChild();
+                }
+            }
+
+            ImGui::EndChild();
 
             // Draw cursor on top of tracks, requires use of ForegroundDrawList to overlay child windows
             draw_cursor();
@@ -160,7 +188,7 @@ namespace ui
         }
     }
 
-    void TimelineWidget::show_track_clips(size_t track_idx)
+    void TimelineWidget::show_track_clips(size_t track_idx, float parent_width)
     {
         auto &timeline = _workspace.get_timeline();
         auto &track = timeline.get_track(track_idx);
@@ -169,9 +197,10 @@ namespace ui
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();
 
+        LOG_DEBUG(logger, "parent_width {}, win_pos ({}, {}), win_size ({}, {})", parent_width, win_pos.x, win_pos.y, win_size.x, win_size.y);
+
         // Save dimensions for drawing the cursor
-        _track_window_x = win_pos.x;
-        _track_window_w = win_size.x;
+        _clip_window_x = win_pos.x;
 
         if (ImGui::IsWindowHovered())
         {
@@ -179,7 +208,7 @@ namespace ui
             if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
             {
                 const float track_x = (ImGui::GetMousePos().x - win_pos.x);
-                const core::timestamp position = _props.time_offset + winpos_to_timestamp({track_x, 0}, win_size);
+                const core::timestamp position = _props.time_offset + winpos_to_timestamp({track_x, 0}, {parent_width, 0.0});
 
                 const auto clip_idx = track.clip_at(position);
 
@@ -203,7 +232,7 @@ namespace ui
                 auto &cont_dragging = std::get<ContinueDragging>(_dragging_state);
 
                 const auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-                const core::timestamp delta_t = winpos_to_timestamp(delta, win_size);
+                const core::timestamp delta_t = winpos_to_timestamp(delta, {parent_width, 0.0});
 
                 if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
@@ -233,7 +262,7 @@ namespace ui
             if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && delta.x == 0 && delta.y == 0)
             {
                 auto [x, y] = ImGui::GetMousePos();
-                _workspace.set_cursor(winpos_to_timestamp({x - win_pos.x, 0}, win_size));
+                _workspace.set_cursor(winpos_to_timestamp({x - win_pos.x, 0}, {parent_width, 0.0}));
             }
         }
 
@@ -242,11 +271,6 @@ namespace ui
         {
             //color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
         }
-
-        ImGui::Scrollbar(ImGuiAxis_X);
-        float scroll_x = ImGui::GetScrollX();
-
-        LOG_INFO(logger, "scroll_x {}", scroll_x);
 
         // Draw clips
         auto *draw_list = ImGui::GetWindowDrawList();
@@ -267,8 +291,8 @@ namespace ui
 
         for (const auto &clip : track.clips)
         {
-            const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, win_size);
-            const float clip_w = timestamp_to_winpos(clip.duration, win_size);
+            const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, {parent_width, 0.0});
+            const float clip_w = timestamp_to_winpos(clip.duration, {parent_width, 0.0});
 
             // Clip rect
             draw_list->AddQuadFilled({clip_x, y}, {clip_x + clip_w, y}, {clip_x + clip_w, y + h}, {clip_x, y + h}, clip_color);
