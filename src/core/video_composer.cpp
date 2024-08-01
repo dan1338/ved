@@ -217,7 +217,7 @@ namespace core
         if (clip.end_position() < _composition->start_position)
             return;
 
-        _sources.emplace(clip.id, clip.file.path);
+        _sources.emplace(clip.id, clip.file);
     }
 
     void VideoComposer::add_track(Timeline::Track &track)

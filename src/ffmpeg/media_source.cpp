@@ -74,13 +74,13 @@ namespace ffmpeg
     class MediaSource : public core::MediaSource
     {
     public:
-        MediaSource(std::string path):
-            _path(std::move(path)),
+        MediaSource(core::MediaFile file):
+            _file(std::move(file)),
             _format_ctx(nullptr)
         {
-            LOG_DEBUG(logger, "Opening {}", _path);
+            LOG_DEBUG(logger, "Opening {}", _file.path);
 
-            int err = avformat_open_input(&_format_ctx, _path.c_str(), nullptr, nullptr);
+            int err = avformat_open_input(&_format_ctx, _file.path.c_str(), nullptr, nullptr);
 
             if (err != 0)
             {
@@ -116,7 +116,7 @@ namespace ffmpeg
 
         ~MediaSource() override
         {
-            LOG_DEBUG(logger, "Closing {}", _path);
+            LOG_DEBUG(logger, "Closing {}", _file.path);
 
             avformat_close_input(&_format_ctx);
             av_packet_free(&_packet);
@@ -124,7 +124,7 @@ namespace ffmpeg
 
         std::string get_name() override
         {
-            return _path;
+            return _file.path;
         }
 
         bool seek(core::timestamp position) override
@@ -172,7 +172,7 @@ namespace ffmpeg
 
                 if (err == AVERROR_EOF)
                 {
-                    LOG_DEBUG(logger, "End of file {}", _path);
+                    LOG_DEBUG(logger, "End of file {}", _file.path);
                     break;
                 }
 
@@ -233,7 +233,7 @@ namespace ffmpeg
         }
 
     private:
-        std::string _path;
+        core::MediaFile _file;
         AVFormatContext *_format_ctx;
         AVPacket *_packet;
         std::vector<StreamPtr> _streams;
@@ -251,11 +251,11 @@ namespace ffmpeg
         }
     };
 
-    std::unique_ptr<core::MediaSource> open_media_source(const std::string &path)
+    std::unique_ptr<core::MediaSource> open_media_source(const core::MediaFile &file)
     {
         try
         {
-            return std::make_unique<MediaSource>(path);
+            return std::make_unique<MediaSource>(file);
         }
         catch (const std::exception &e)
         {

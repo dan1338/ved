@@ -15,19 +15,27 @@ namespace core
 {
     static constexpr auto seek_ahead_threshold = 3s;
 
-    SyncMediaSource::SyncMediaSource(std::string path):
-        _path(std::move(path)),
-        _raw_source(ffmpeg::open_media_source(_path))
+    SyncMediaSource::SyncMediaSource(core::MediaFile file):
+        _file(std::move(file)),
+        _raw_source(ffmpeg::open_media_source(_file))
     {
-        if (file_caches.find(_path) == file_caches.end())
-            file_caches[_path] = {};
+        if (file_caches.find(_file.path) == file_caches.end())
+            file_caches[_file.path] = {};
     }
 
     AVFrame *SyncMediaSource::frame_at(core::timestamp ts)
     {
         LOG_DEBUG(logger, "frame_at, ts = {}s", ts / 1.0s);
 
-        auto &cache = file_caches.at(_path);
+        // Single image handling
+        // Only the first frame contains the image, if we set ts to 0
+        // we'd either fetch it anew if necessary, or grab one from the cache
+        if (_file.type == core::MediaFile::STATIC_IMAGE)
+        {
+            ts = 0s;
+        }
+
+        auto &cache = file_caches.at(_file.path);
 
         if (auto it = cache.find(ts.count()); it != cache.end())
         {
@@ -35,10 +43,12 @@ namespace core
             return av_frame_clone(it->second);
         }
 
+        // Because MediaSource only allows for fetching next_frame
+        // we might want to create a new one a seek closer to desired timestamp
         if (ts <= _last_ts || ts > _last_ts + seek_ahead_threshold)
         {
             LOG_DEBUG(logger, "reconstruct and seek");
-            _raw_source = ffmpeg::open_media_source(_path);
+            _raw_source = ffmpeg::open_media_source(_file);
             _raw_source->seek(ts);
         }
 
