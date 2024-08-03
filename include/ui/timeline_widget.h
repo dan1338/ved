@@ -44,47 +44,68 @@ namespace ui
         float _track_window_x{0.0f};
         float _track_window_w{0.0f};
 
-        struct DraggingInfo
+        struct DraggingInitState
         {
-            size_t track_idx;
-            size_t clip_idx;
+            core::Timeline::Clip *clip;
             core::timestamp org_position;
+            core::timestamp org_duration;
         };
 
-        struct BeginDragging : public DraggingInfo {};
-
-        struct ContinueDragging : public DraggingInfo
+        struct DraggingOperation
         {
-            core::timestamp last_delta;
+            DraggingInitState init_state;
+
+            core::timestamp last_delta{};
+            bool has_began{false};
+
+            void update(core::timestamp delta_t)
+            {
+                if (last_delta != delta_t)
+                {
+                    update_impl(delta_t);
+                    last_delta = delta_t;
+                }
+            }
+
+            virtual void update_impl(core::timestamp delta_t) = 0;
         };
 
-        using DraggingState = std::variant<std::monostate, BeginDragging, ContinueDragging>;
-        DraggingState _dragging_state;
+        struct MoveClip : public DraggingOperation { void update_impl(core::timestamp) override; };
+        struct ResizeClipLeft : public DraggingOperation { void update_impl(core::timestamp) override; };
+        struct ResizeClipRight : public DraggingOperation { void update_impl(core::timestamp) override; };
 
-        core::Timeline::Clip &get_dragged_clip()
+        std::unique_ptr<DraggingOperation> _dragging_operation{};
+
+        template<typename TOperation>
+        void setup_dragging_operation(DraggingInitState init_state)
         {
-            DraggingInfo *info{nullptr};
-
-            if (std::holds_alternative<BeginDragging>(_dragging_state))
-                info = &std::get<BeginDragging>(_dragging_state);
-            if (std::holds_alternative<ContinueDragging>(_dragging_state))
-                info = &std::get<ContinueDragging>(_dragging_state);
-
-            auto &track = _workspace.get_timeline().get_track(info->track_idx);
-
-            return track.clips[info->clip_idx];
+            _dragging_operation = std::make_unique<TOperation>();
+            _dragging_operation->init_state = init_state;
         }
 
-        core::timestamp winpos_to_timestamp(ImVec2 win_pos, ImVec2 win_size)
+        bool can_begin_dragging() const
         {
-            auto offset = _props.visible_timespan * (win_pos.x / win_size.x);
+            return _dragging_operation && !_dragging_operation->has_began;
+        }
+
+        core::timestamp winpos_to_timestamp(float pos_x, float win_w) const
+        {
+            auto offset = _props.visible_timespan * (pos_x / win_w);
 
             return ((int64_t)offset.count()) * 1ms;
         }
 
-        float timestamp_to_winpos(core::timestamp ts, ImVec2 win_size)
+        float timestamp_to_winpos(core::timestamp ts, float win_w) const
         {
-            return (win_size.x * ts) / _props.visible_timespan;
+            return (win_w * ts) / _props.visible_timespan;
+        }
+
+        std::pair<float, float> get_clip_pixel_bounds(const core::Timeline::Clip &clip, float win_w) const
+        {
+            const auto px_start = timestamp_to_winpos(clip.position, win_w);
+            const auto px_end = timestamp_to_winpos(clip.end_position(), win_w);
+
+            return {px_start, px_end};
         }
 
         void show_tracks();

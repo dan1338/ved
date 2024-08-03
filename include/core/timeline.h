@@ -57,6 +57,18 @@ namespace core
             {
                 return position + duration;
             }
+
+            core::timestamp max_duration() const
+            {
+                if (file.type == MediaFile::STATIC_IMAGE)
+                {
+                    return core::timestamp{INT64_MAX};
+                }
+                else
+                {
+                    return file.duration - start_time;
+                }
+            }
         };
 
         struct Track

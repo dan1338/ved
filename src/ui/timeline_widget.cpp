@@ -81,7 +81,7 @@ namespace ui
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();
 
-        float cursor_x = _clip_window_x + timestamp_to_winpos(_workspace.get_cursor(), {_track_window_w, 0.0});
+        float cursor_x = _clip_window_x + timestamp_to_winpos(_workspace.get_cursor(), _track_window_w);
 
         if (cursor_x < _track_window_x || cursor_x > _track_window_x + _track_window_w)
             return;
@@ -156,7 +156,7 @@ namespace ui
                     _track_window_x = win_pos.x;
                     _track_window_w = win_size.x;
 
-                    const float total_width = timestamp_to_winpos(timeline.get_duration(), win_size);
+                    const float total_width = timestamp_to_winpos(timeline.get_duration(), win_size.x);
 
                     // Track timeline
                     if (ImGui::BeginChild((name + "_clips").c_str(), {total_width, _props.track_height}, _child_flags, 0))
@@ -188,6 +188,36 @@ namespace ui
         }
     }
 
+    void TimelineWidget::MoveClip::update_impl(core::timestamp delta_t)
+    {
+        auto &clip = *init_state.clip;
+
+        clip.track.move_clip(clip, init_state.org_position + delta_t);
+    }
+
+    void TimelineWidget::ResizeClipLeft::update_impl(core::timestamp delta_t)
+    {
+        auto &clip = *init_state.clip;
+
+        clip.position = init_state.org_position + delta_t;
+        clip.duration = init_state.org_duration - delta_t;
+
+        if (clip.duration > clip.max_duration())
+        {
+            clip.position -= delta_t;
+            clip.duration = clip.max_duration();
+        }
+    }
+
+    void TimelineWidget::ResizeClipRight::update_impl(core::timestamp delta_t)
+    {
+        auto &clip = *init_state.clip;
+        clip.duration = init_state.org_duration + delta_t;
+
+        if (clip.duration > clip.max_duration())
+            clip.duration = clip.max_duration();
+    }
+
     void TimelineWidget::show_track_clips(size_t track_idx, float parent_width)
     {
         auto &timeline = _workspace.get_timeline();
@@ -204,51 +234,63 @@ namespace ui
 
         if (ImGui::IsWindowHovered())
         {
-            // Begin dragging clip
-            if (ImGui::IsMouseClicked(ImGuiMouseButton_Left))
+            const float track_x = (ImGui::GetMousePos().x - win_pos.x);
+            const auto hover_clip_idx = track.clip_at(winpos_to_timestamp(track_x, parent_width));
+
+            // Clip dragging behavior
+            if (hover_clip_idx.has_value())
             {
-                const float track_x = (ImGui::GetMousePos().x - win_pos.x);
-                const core::timestamp position = _props.time_offset + winpos_to_timestamp({track_x, 0}, {parent_width, 0.0});
+                auto &clip = track.clips[*hover_clip_idx];
+                const auto [px_start, px_end] = get_clip_pixel_bounds(clip, parent_width);
 
-                const auto clip_idx = track.clip_at(position);
+                const float dist_thresh = 10.0f;
+                const bool clicked = ImGui::IsMouseClicked(ImGuiMouseButton_Left);
 
-                if (clip_idx.has_value())
+                DraggingInitState init_state{&clip, clip.position, clip.duration};
+
+                if (track_x - px_start < dist_thresh)
                 {
-                    LOG_INFO(logger, "Start dragging clip @ {}", *clip_idx);
-                    _dragging_state = BeginDragging{track_idx, *clip_idx, track.clips[*clip_idx].position};
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+                    if (clicked)
+                        setup_dragging_operation<ResizeClipLeft>(init_state);
+                }
+                else if (px_end - track_x < dist_thresh)
+                {
+                    ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
+
+                    if (clicked)
+                        setup_dragging_operation<ResizeClipRight>(init_state);
+                }
+                else if (clicked)
+                {
+                    setup_dragging_operation<MoveClip>(init_state);
                 }
             }
 
             // Start handling dragging
-            if (std::holds_alternative<BeginDragging>(_dragging_state) && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
+            if (can_begin_dragging() && ImGui::IsMouseDragging(ImGuiMouseButton_Left))
             {
-                LOG_INFO(logger, "Continue dragging clip");
-                _dragging_state = ContinueDragging{std::get<BeginDragging>(_dragging_state)};
+                LOG_INFO(logger, "Begin dragging clip");
+
+                _dragging_operation->has_began = true;
             }
 
             // Update dragged clip / Finish dragging
-            if (std::holds_alternative<ContinueDragging>(_dragging_state))
+            if (_dragging_operation != nullptr)
             {
-                auto &cont_dragging = std::get<ContinueDragging>(_dragging_state);
-
-                const auto delta = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left);
-                const core::timestamp delta_t = winpos_to_timestamp(delta, {parent_width, 0.0});
-
                 if (ImGui::IsMouseReleased(ImGuiMouseButton_Left))
                 {
                     // Clip has beed dropped
                     LOG_INFO(logger, "Stop dragging clip");
-                    _dragging_state = std::monostate{};
+                    _dragging_operation = nullptr;
                 }
-                else if (delta_t != cont_dragging.last_delta)
+                else
                 {
-                    // Still dragging
-                    LOG_INFO(logger, "Update dragging clip {}", (cont_dragging.org_position + delta_t).count());
+                    const auto delta_x = ImGui::GetMouseDragDelta(ImGuiMouseButton_Left).x;
+                    const core::timestamp delta_t = winpos_to_timestamp(delta_x, parent_width);
 
-                    auto &clip = get_dragged_clip();
-                    track.move_clip(clip, cont_dragging.org_position + delta_t);
-
-                    cont_dragging.last_delta = delta_t;
+                    _dragging_operation->update(delta_t);
                 }
             }
         }
@@ -262,7 +304,7 @@ namespace ui
             if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && delta.x == 0 && delta.y == 0)
             {
                 auto [x, y] = ImGui::GetMousePos();
-                _workspace.set_cursor(winpos_to_timestamp({x - win_pos.x, 0}, {parent_width, 0.0}));
+                _workspace.set_cursor(winpos_to_timestamp(x - win_pos.x, parent_width));
             }
         }
 
@@ -291,8 +333,8 @@ namespace ui
 
         for (const auto &clip : track.clips)
         {
-            const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, {parent_width, 0.0});
-            const float clip_w = timestamp_to_winpos(clip.duration, {parent_width, 0.0});
+            const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, parent_width);
+            const float clip_w = timestamp_to_winpos(clip.duration, parent_width);
 
             // Clip rect
             draw_list->AddQuadFilled({clip_x, y}, {clip_x + clip_w, y}, {clip_x + clip_w, y + h}, {clip_x, y + h}, clip_color);

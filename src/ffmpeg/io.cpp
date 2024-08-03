@@ -32,7 +32,7 @@ namespace ffmpeg
             if (is_file_static_image(format_ctx))
             {
                 file.type = core::MediaFile::STATIC_IMAGE;
-                file.duration = 1s;
+                file.duration = 0s;
             }
             else
             {
