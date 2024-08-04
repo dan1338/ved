@@ -55,6 +55,7 @@ namespace ui
         {
             DraggingInitState init_state;
 
+            core::Timeline *timeline;
             core::timestamp last_delta{};
             bool has_began{false};
 
@@ -81,6 +82,7 @@ namespace ui
         {
             _dragging_operation = std::make_unique<TOperation>();
             _dragging_operation->init_state = init_state;
+            _dragging_operation->timeline = &_workspace.get_timeline();
         }
 
         bool can_begin_dragging() const
@@ -109,7 +111,7 @@ namespace ui
         }
 
         void show_tracks();
-        void show_track_clips(size_t track_idx, float parent_width);
+        void show_track_clips(core::Timeline::TrackID track_id, bool is_focused, float parent_width);
         void draw_cursor();
     };
 }

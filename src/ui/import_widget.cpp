@@ -36,7 +36,7 @@ namespace ui
                 {
                     if (ImGui::TreeNodeEx(file->path.filename().c_str(), node_flags) && ImGui::IsItemClicked()) {
                         auto &timeline = _workspace.get_timeline();
-                        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+                        auto &active_track = timeline.get_track(_workspace.get_active_track_id());
                         active_track.add_clip(file->open(), _workspace.get_cursor());
                     }
                 }

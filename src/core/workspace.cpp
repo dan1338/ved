@@ -7,23 +7,26 @@ namespace core
         _props(std::move(props)),
         _timeline(_props)
     {
-        _timeline.clip_added_event.add_callback([this](auto &clip) {
+        _timeline.track_modified_event.add_callback([this](auto track_id) {
             _force_preview_refresh = true;
         });
 
-        _timeline.clip_moved_event.add_callback([this](auto &clip) {
-            _force_preview_refresh = true;
-        });
+        _timeline.track_removed_event.add_callback([this](auto removed_id) {
+            if (_active_track_id == removed_id)
+            {
+                _timeline.foreach_track([this, removed_id](auto &track){
+                    // Find the next track with smaller id
+                    _active_track_id = track.id;
 
-        _timeline.clip_transformed_event.add_callback([this](auto &clip) {
-            _force_preview_refresh = true;
-        });
+                    // Stop if we're past the removed track
+                    if (_active_track_id > removed_id)
+                        return false;
 
-        _timeline.track_removed_event.add_callback([this](auto track_idx) {
-            if (_active_track_idx > track_idx || _active_track_idx >= _timeline.get_tracks().size())
-                --_active_track_idx;
+                    return true;
+                });
 
-            _force_preview_refresh = true;
+                _force_preview_refresh = true;
+            }
         });
 
         _timeline.duration_changed_event.add_callback([this](auto ts) {
@@ -31,7 +34,8 @@ namespace core
                 set_cursor(_timeline.get_duration());
         });
 
-        _timeline.add_track(); // Default track
+        const auto &default_track = _timeline.add_track(); // Default track
+        _active_track_id = default_track.id;
     }
 }
 

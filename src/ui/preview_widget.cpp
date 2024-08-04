@@ -27,7 +27,7 @@ namespace ui
     PreviewWidget::PreviewWidget(MainWindow &window):
         Widget(window),
         _workspace(window._workspace),
-        _preview(Preview{{_workspace.get_timeline(), _workspace.get_props()}})
+        _preview(Preview{_workspace, {_workspace.get_timeline(), _workspace.get_props()}})
     {
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);
@@ -54,6 +54,28 @@ namespace ui
             {
                 _preview.last_frame_display_time.emplace(display_time);
             }
+        });
+
+        // Subscribe to all track changed events to send them over to the preview thread
+        auto &timeline = _workspace.get_timeline();
+
+        timeline.track_modified_event.add_callback([this, &timeline](auto track_id){
+            const auto &track = timeline.get_track(track_id);
+
+            Preview::TrackModified event{std::make_unique<core::Timeline::Track>(track)};
+            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
+        });
+
+        timeline.track_added_event.add_callback([this, &timeline](auto track_id){
+            const auto &track = timeline.get_track(track_id);
+
+            Preview::TrackAdded event{std::make_unique<core::Timeline::Track>(track)};
+            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
+        });
+
+        timeline.track_removed_event.add_callback([this](auto track_id){
+            Preview::TrackRemoved event{track_id};
+            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
         });
 
         // Initialize preview worker
@@ -196,7 +218,7 @@ namespace ui
                         ImGui::ResetMouseDragDelta();
 
                         auto &timeline = _workspace.get_timeline();
-                        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+                        auto &active_track = timeline.get_track(_workspace.get_active_track_id());
                         const auto clip_idx = active_track.clip_at(_workspace.get_cursor());
 
                         if (clip_idx.has_value())

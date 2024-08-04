@@ -33,7 +33,7 @@ namespace core
 
     void Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
     {
-        Clip clip{timeline->_clip_id_counter++, *this, position, 0s, file.duration, file};
+        Clip clip{timeline->_clip_id_counter++, id, position, 0s, file.duration, file};
 
         if (file.type == MediaFile::STATIC_IMAGE)
         {
@@ -81,6 +81,22 @@ namespace core
     Timeline::Timeline(WorkspaceProperties &props):
         _props(props)
     {
+        // Setup aggregate event notifications
+        clip_added_event.add_callback([this](auto &clip){
+            track_modified_event.notify(clip.track_id);
+        });
+
+        clip_moved_event.add_callback([this](auto &clip){
+            track_modified_event.notify(clip.track_id);
+        });
+
+        clip_resized_event.add_callback([this](auto &clip){
+            track_modified_event.notify(clip.track_id);
+        });
+
+        clip_transformed_event.add_callback([this](auto &clip){
+            track_modified_event.notify(clip.track_id);
+        });
     }
 }
 

@@ -22,7 +22,7 @@ namespace ui
     void TimelineWidget::show()
     {
         auto &timeline = _workspace.get_timeline();
-        auto &active_track = timeline.get_track(_workspace.get_active_track_idx());
+        auto &active_track = timeline.get_track(_workspace.get_active_track_id());
 
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
@@ -95,11 +95,10 @@ namespace ui
     void TimelineWidget::show_tracks()
     {
         auto &timeline = _workspace.get_timeline();
-        auto &tracks = timeline.get_tracks();
 
         // Emplace track index into here to remove track
         // Make the assumtion that only one track can be removed per frame
-        std::optional<size_t> track_to_remove;
+        std::optional<core::Timeline::TrackID> track_to_remove;
 
         if (ImGui::BeginChild("Tracks", {}, 0, 0))
         {
@@ -107,47 +106,47 @@ namespace ui
             ImGui::SetColumnWidth(0, 100.0);
 
             // Draw headers
-            for (size_t i = 0; i < tracks.size(); i++)
-            {
-                bool is_focused = (i == _workspace.get_active_track_idx());
-                std::string name{fmt::format("Track header {}", i)};
+            timeline.foreach_track([&](auto &track){
+                bool is_focused = (track.id == _workspace.get_active_track_id());
+                std::string name{fmt::format("Track header {}", track.id)};
 
                 if (is_focused) ImGui::PushStyleColor(ImGuiCol_ChildBg, {0.6, 0.3, 0.3, 0.8});
 
                 // Track header
                 if (ImGui::BeginChild(name.c_str(), {0.0, _props.track_height}, _child_flags, 0))
                 {
-                    ImGui::Text("Track %d", (int)i);
+                    ImGui::Text("Track %d", (int)track.id);
 
                     ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
 
                     if (ImGui::Button("X", {-1.0, -1.0}))
                     {
-                        track_to_remove.emplace(i);
+                        track_to_remove.emplace(track.id);
                     }
 
                     ImGui::PopStyleColor();
 
                     if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                     {
-                        _workspace.set_active_track(i);
+                        _workspace.set_active_track(track.id);
                     }
                 }
 
                 ImGui::EndChild();
 
                 if (is_focused) ImGui::PopStyleColor();
-            }
+
+                return true;
+            });
 
             ImGui::NextColumn();
 
             // Draw clips
             if (ImGui::BeginChild("Track clips", {}, ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_AlwaysHorizontalScrollbar))
             {
-                for (size_t i = 0; i < tracks.size(); i++)
-                {
-                    bool is_focused = (i == _workspace.get_active_track_idx());
-                    std::string name{fmt::format("Track clips {}", i)};
+                timeline.foreach_track([&](auto &track){
+                    std::string name{fmt::format("Track clips {}", track.id)};
+                    bool is_focused = (track.id == _workspace.get_active_track_id());
 
                     const auto win_pos = ImGui::GetWindowPos();
                     const auto win_size = ImGui::GetWindowSize();
@@ -161,16 +160,18 @@ namespace ui
                     // Track timeline
                     if (ImGui::BeginChild((name + "_clips").c_str(), {total_width, _props.track_height}, _child_flags, 0))
                     {
-                        show_track_clips(i, win_size.x);
+                        show_track_clips(track.id, is_focused, win_size.x);
 
                         if (ImGui::IsWindowHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left))
                         {
-                            _workspace.set_active_track(i);
+                            _workspace.set_active_track(track.id);
                         }
                     }
 
                     ImGui::EndChild();
-                }
+
+                    return true;
+                });
             }
 
             ImGui::EndChild();
@@ -182,7 +183,7 @@ namespace ui
         ImGui::EndChild();
 
         // Remove track if asked to
-        if (track_to_remove.has_value() && tracks.size() > 1)
+        if (track_to_remove.has_value() && timeline.get_track_count() > 1)
         {
             timeline.rm_track(*track_to_remove);
         }
@@ -191,8 +192,9 @@ namespace ui
     void TimelineWidget::MoveClip::update_impl(core::timestamp delta_t)
     {
         auto &clip = *init_state.clip;
+        auto &track = timeline->get_track(clip.track_id);
 
-        clip.track.move_clip(clip, init_state.org_position + delta_t);
+        track.move_clip(clip, init_state.org_position + delta_t);
     }
 
     void TimelineWidget::ResizeClipLeft::update_impl(core::timestamp delta_t)
@@ -207,6 +209,8 @@ namespace ui
             clip.position -= delta_t;
             clip.duration = clip.max_duration();
         }
+
+        timeline->clip_resized_event.notify(clip);
     }
 
     void TimelineWidget::ResizeClipRight::update_impl(core::timestamp delta_t)
@@ -216,13 +220,14 @@ namespace ui
 
         if (clip.duration > clip.max_duration())
             clip.duration = clip.max_duration();
+
+        timeline->clip_resized_event.notify(clip);
     }
 
-    void TimelineWidget::show_track_clips(size_t track_idx, float parent_width)
+    void TimelineWidget::show_track_clips(core::Timeline::TrackID track_id, bool is_focused, float parent_width)
     {
         auto &timeline = _workspace.get_timeline();
-        auto &track = timeline.get_track(track_idx);
-        bool is_focused = (track_idx == _workspace.get_active_track_idx());
+        auto &track = timeline.get_track(track_id);
 
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();

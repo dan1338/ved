@@ -85,14 +85,14 @@ namespace core
             return _timeline;
         }
 
-        size_t get_active_track_idx() const
+        Timeline::TrackID get_active_track_id() const
         {
-            return _active_track_idx;
+            return _active_track_id;
         }
 
-        void set_active_track(size_t idx)
+        void set_active_track(Timeline::TrackID id)
         {
-            _active_track_idx = idx;
+            _active_track_id = id;
         }
 
         void start_preview()
@@ -118,8 +118,10 @@ namespace core
         logging::Logger *_logger;
 
         WorkspaceProperties _props;
+
         Timeline _timeline;
-        size_t _active_track_idx{0};
+        Timeline::TrackID _active_track_id{};
+
         bool _force_preview_refresh{false};
         bool _preview_active{false};
 

@@ -1,5 +1,6 @@
 #include "core/video_composer.h"
 #include "logging.h"
+#include <algorithm>
 
 static auto logger = logging::get_logger("VideoComposer");
 
@@ -55,60 +56,46 @@ namespace core
         }
     }
 
-    VideoComposer::VideoComposer(core::Timeline &timeline, WorkspaceProperties &props):
-        _timeline(timeline),
-        _props(props),
-        _frame_dt(core::timestamp(1s).count() / props.frame_rate)
+    VideoComposer::VideoComposer(core::Timeline &timeline, WorkspaceProperties props):
+        _props(std::move(props)),
+        _frame_dt(core::timestamp(1s).count() / _props.frame_rate)
     {
         seek(0s);
 
-        for (auto &track : _timeline.get_tracks())
-        {
+        timeline.foreach_track([this](Timeline::Track &track) {
             add_track(track);
 
             for (auto &clip : track.clips)
-            {
                 add_clip(clip);
-            }
+
+            return true;
+        });
+    }
+
+    void VideoComposer::update_properties(WorkspaceProperties props)
+    {
+        _props = std::move(props);
+        _frame_dt = core::timestamp{core::timestamp(1s).count() / _props.frame_rate};
+    }
+
+    void VideoComposer::update_track(core::Timeline::Track &track)
+    {
+        if (_tracks.find(track.id) != _tracks.end())
+            _tracks.erase(track.id);
+
+        add_track(track);
+
+        for (auto &clip : track.clips)
+        {
+            if (_sources.find(clip.id) == _sources.end())
+                add_clip(clip);
         }
+    }
 
-        // TODO: Thread safety
-        // I've been putting this off for a little long now
-        // but there is the question of synchronisation.
-        //
-        // Rn we're using this in the preview worker thread and
-        // all the callbacks come from main thread, technically a data race
-        //
-        // Option 1, have queues which hold these events and we pop and handle them
-        // each time on next_frame (imo too heavy)
-        //
-        // Option 2, throw in a mutex held throughout the duration of next_frame
-        // and call it a day (love it, but I don't like the idea that VideoComposer
-        // inherently has to handle multithreading)
-        //
-        // Ideally we should separate the VideoComposer from the software composition
-        // logic via DI, to allow for GPU/"shader only" composition as well.
-        // With that change some better solutions might arise as we'd hopefuly remove
-        // all softcompose specific data that has to keep up with the timeline changes
-
-        _timeline.clip_added_event.add_callback([this](auto &clip){
-            std::lock_guard<std::mutex> lock(_mutex);
-            add_clip(clip);
-        });
-
-        _timeline.clip_moved_event.add_callback([this](auto &clip){
-            std::lock_guard<std::mutex> lock(_mutex);
-
-            if (_sources.find(clip.id) != _sources.end())
-                _sources.erase(clip.id);
-
-            add_clip(clip);
-        });
-
-        _timeline.track_added_event.add_callback([this](size_t idx){
-            std::lock_guard<std::mutex> lock(_mutex);
-            add_track(_timeline.get_track(idx));
-        });
+    void VideoComposer::remove_track(core::Timeline::TrackID id)
+    {
+        if (_tracks.find(id) != _tracks.end())
+            _tracks.erase(id);
     }
 
     std::string VideoComposer::get_name()
@@ -137,8 +124,6 @@ namespace core
 
     AVFrame* VideoComposer::next_frame(AVMediaType frame_type)
     {
-        std::lock_guard<std::mutex> lock(_mutex);
-
         auto &ts = _composition->last_position;
 
         AVFrame *out_frame = av_frame_alloc();
@@ -149,9 +134,8 @@ namespace core
         out_frame->height = _props.video_height;
         out_frame->format = AVPixelFormat::AV_PIX_FMT_RGB24;
 
-        if (av_frame_get_buffer(out_frame, 0) != 0) {
+        if (av_frame_get_buffer(out_frame, 0) != 0)
             throw std::runtime_error("av_frame_get_buffer @ render");
-        }
 
         // Zero out frame
         memset(out_frame->data[0], 0, out_frame->linesize[0] * out_frame->height);
@@ -159,14 +143,12 @@ namespace core
         LOG_DEBUG(logger, "Next frame, ts = {}s", ts / 1.0s);
         LOG_TRACE_L3(logger, "Begin compose");
 
-        for (auto &track : _timeline.get_tracks())
+        for (auto &[track_id, track] : _tracks)
         {
             auto clip_idx = track.clip_at(ts);
             
             if (!clip_idx.has_value()) // No clip here
-            {
                 continue;
-            }
 
             auto &clip = track.clips[*clip_idx];
             auto &source = _sources.at(clip.id);
@@ -222,7 +204,10 @@ namespace core
 
     void VideoComposer::add_track(Timeline::Track &track)
     {
-        _frame_converters.emplace(track.id, ffmpeg::FrameConverter(AVPixelFormat::AV_PIX_FMT_RGB24));
+        _tracks.emplace(track.id, track);
+
+        if (_frame_converters.find(track.id) == _frame_converters.end())
+            _frame_converters.emplace(track.id, ffmpeg::FrameConverter(AVPixelFormat::AV_PIX_FMT_RGB24));
     }
 }
 

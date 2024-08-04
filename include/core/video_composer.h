@@ -2,23 +2,27 @@
 
 #include <memory>
 #include <unordered_map>
-#include <mutex>
+#include <unordered_set>
 
-#include "core/time.h"
 #include "core/media_source.h"
+#include "core/sync_media_source.h"
+#include "core/time.h"
 #include "core/timeline.h"
 #include "core/workspace_properties.h"
-#include "core/sync_media_source.h"
 
-#include "ffmpeg/media_source.h"
 #include "ffmpeg/frame_converter.h"
+#include "ffmpeg/media_source.h"
 
 namespace core
 {
     class VideoComposer : public MediaSource
     {
     public:
-        VideoComposer(core::Timeline &timeline, WorkspaceProperties &props);
+        VideoComposer(core::Timeline &timeline, WorkspaceProperties props);
+
+        void update_properties(WorkspaceProperties props);
+        void update_track(core::Timeline::Track &track);
+        void remove_track(core::Timeline::TrackID id);
 
         std::string get_name() override;
 
@@ -32,11 +36,10 @@ namespace core
         void add_clip(Timeline::Clip &clip);
         void add_track(Timeline::Track &track);
 
-        core::Timeline &_timeline;
-        core::WorkspaceProperties &_props;
+        core::WorkspaceProperties _props;
         core::timestamp _frame_dt;
 
-        std::mutex _mutex;
+        std::map<Timeline::TrackID, Timeline::Track> _tracks;
 
         // Each clip has a SyncMediaReader which allows for fetching a frame
         // at a precise timestamp.
@@ -47,14 +50,14 @@ namespace core
         //
         // It's important that the timestamps are aligned to the workspace frame rate,
         // to ensure cache hits.
-        std::unordered_map<Timeline::Clip::ID, SyncMediaSource> _sources;
+        std::unordered_map<Timeline::ClipID, SyncMediaSource> _sources;
 
         // Each track has it's own FrameConverter for the purpose of transforming
         // its current frame according to the ClipTransformation
         //
         // Having one converter per track strikes a balance between number of allocated
         // temporary frames and frequency of reallocation due to size change
-        std::unordered_map<Timeline::Track::ID, ffmpeg::FrameConverter> _frame_converters;
+        std::unordered_map<Timeline::TrackID, ffmpeg::FrameConverter> _frame_converters;
 
         struct Composition
         {

@@ -16,6 +16,7 @@
 #include <thread>
 #include <atomic>
 #include <memory>
+#include <variant>
 
 namespace ui
 {
@@ -38,6 +39,8 @@ namespace ui
         
         struct Preview
         {
+            core::Workspace &workspace;
+
             core::VideoComposer composer;
             AVFrame *last_frame{nullptr};
             std::optional<core::timestamp> last_frame_display_time;
@@ -48,6 +51,12 @@ namespace ui
             
             using PreviewFrame = std::pair<uint64_t, AVFrame*>;
             msd::channel<PreviewFrame> out_frames{1};
+
+            struct TrackRemoved { core::Timeline::TrackID id; };
+            struct TrackAdded { std::unique_ptr<core::Timeline::Track> track; };
+            struct TrackModified { std::unique_ptr<core::Timeline::Track> track; };
+            using TrackEvent = std::variant<TrackRemoved, TrackAdded, TrackModified>;
+            msd::channel<TrackEvent> in_track_events;
 
             std::thread thread{[this](){
                 auto logger = logging::get_logger("PreviewWidget::worker");
@@ -65,14 +74,33 @@ namespace ui
                             LOG_DEBUG(logger, "Have newer seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
                         }
 
-                        const auto &[id, position] = seek_req;
+                        const auto &[seek_id, position] = seek_req;
                         composer.seek(position);
 
                         while (in_seek.empty())
                         {
+                            while (!in_track_events.empty())
+                            {
+                                TrackEvent track_event;
+                                in_track_events >> track_event;
+
+                                if (const auto &event_removed = std::get_if<TrackRemoved>(&track_event))
+                                {
+                                    composer.remove_track(event_removed->id);
+                                }
+                                else if (const auto &event_added = std::get_if<TrackAdded>(&track_event))
+                                {
+                                    composer.update_track(*event_added->track);
+                                }
+                                else if (const auto &event_modified = std::get_if<TrackModified>(&track_event))
+                                {
+                                    composer.update_track(*event_modified->track);
+                                }
+                            }
+
                             auto *frame = composer.next_frame(AVMEDIA_TYPE_VIDEO);
                             LOG_DEBUG(logger, "Frame ready, pts = {}", frame->pts);
-                            out_frames << PreviewFrame{id, frame};
+                            out_frames << PreviewFrame{seek_id, frame};
                             LOG_DEBUG(logger, "Frame sent, pts = {}", frame->pts);
                         }
                     }
