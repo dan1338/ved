@@ -67,7 +67,8 @@ namespace ui
         _workspace({1280, 720, 30}),
         _timeline_widget(*this, _timeline_props),
         _import_widget(*this, _import_dir),
-        _preview_widget(*this)
+        _preview_widget(*this),
+        _workspace_props_widget(*this)
     {
         set_imgui_style(style);
 
@@ -149,6 +150,13 @@ namespace ui
             _timeline_widget.show();
             _import_widget.show();
             _preview_widget.show();
+
+            if (_show_workspace_props)
+            {
+                _workspace_props_widget.show();
+            }
+
+            ImGui::EndPopup();
 
             ImGui::Render();
 

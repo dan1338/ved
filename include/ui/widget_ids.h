@@ -7,6 +7,7 @@ namespace ui
         static constexpr auto preview = "Preview";
         static constexpr auto timeline = "Timeline";
         static constexpr auto import = "Import files";
+        static constexpr auto workspace_properties = "Workspace properties";
     }
 }
 

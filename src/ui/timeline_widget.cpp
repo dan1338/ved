@@ -52,6 +52,13 @@ namespace ui
                 timeline.add_track();
             }
 
+            ImGui::SameLine();
+
+            if (ImGui::Button("Properties"))
+            {
+                _window._show_workspace_props = true;
+            }
+
             ImGui::SetNextItemWidth(100.0);
             ImGui::SameLine();
 

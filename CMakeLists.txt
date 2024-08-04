@@ -61,6 +61,7 @@ add_executable(ved
     src/ui/timeline_widget.cpp
     src/ui/main_window.cpp
     src/ui/preview_widget.cpp
+    src/ui/workspace_properties_widget.cpp
 )
 
 add_library(imgui OBJECT

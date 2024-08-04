@@ -58,7 +58,7 @@ namespace core
 
     VideoComposer::VideoComposer(core::Timeline &timeline, WorkspaceProperties props):
         _props(std::move(props)),
-        _frame_dt(core::timestamp(1s).count() / _props.frame_rate)
+        _frame_dt(_props.frame_dt())
     {
         seek(0s);
 
@@ -75,7 +75,7 @@ namespace core
     void VideoComposer::update_properties(WorkspaceProperties props)
     {
         _props = std::move(props);
-        _frame_dt = core::timestamp{core::timestamp(1s).count() / _props.frame_rate};
+        _frame_dt = _props.frame_dt();
     }
 
     void VideoComposer::update_track(core::Timeline::Track &track)

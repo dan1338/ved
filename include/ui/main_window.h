@@ -16,6 +16,7 @@
 #include "ui/timeline_widget.h"
 #include "ui/preview_widget.h"
 #include "ui/import_widget.h"
+#include "ui/workspace_properties_widget.h"
 
 namespace ui
 {
@@ -50,11 +51,15 @@ namespace ui
         ui::TimelineWidget _timeline_widget;
         ui::ImportWidget _import_widget;
         ui::PreviewWidget _preview_widget;
+        ui::WorkspacePropertiesWidget _workspace_props_widget;
+
+        bool _show_workspace_props{false};
 
         void layout_windows();
 
         friend class TimelineWidget;
         friend class ImportWidget;
         friend class PreviewWidget;
+        friend class WorkspacePropertiesWidget;
     };
 }
