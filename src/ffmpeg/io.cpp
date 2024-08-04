@@ -15,6 +15,11 @@ namespace ffmpeg
         if (stream->codecpar->codec_type != AVMEDIA_TYPE_VIDEO)
             return false;
 
+        // Both JFIF and EXIF JPEGs are resolved as MJPEG video stream
+        // The stream usually has duration of 1
+        if (stream->codecpar->codec_id == AV_CODEC_ID_MJPEG)
+            return stream->duration <= 1;
+
         return stream->duration <= 0;
     }
 
