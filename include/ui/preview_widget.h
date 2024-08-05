@@ -39,9 +39,8 @@ namespace ui
         
         struct Preview
         {
-            Preview(core::Workspace &workspace):
-                workspace(workspace),
-                composer(workspace.get_timeline(), workspace.get_props())
+            Preview(core::Timeline &timeline, const core::WorkspaceProperties &props):
+                composer(timeline, props)
             {
             }
 
@@ -62,8 +61,6 @@ namespace ui
 
                 thread.join();
             }
-
-            core::Workspace &workspace;
 
             core::VideoComposer composer;
             AVFrame *last_frame{nullptr};

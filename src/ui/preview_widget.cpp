@@ -28,7 +28,7 @@ namespace ui
         Widget(window),
         _workspace(window._workspace)
     {
-        _preview = std::make_unique<Preview>(_workspace);
+        _preview = std::make_unique<Preview>(_workspace.get_timeline(), _workspace.get_props());
 
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);
@@ -77,6 +77,11 @@ namespace ui
         timeline.track_removed_event.add_callback([this](auto track_id){
             Preview::TrackRemoved event{track_id};
             _preview->in_track_events << Preview::TrackEvent{std::move(event)};
+        });
+
+        // Reload worker on properties change
+        _workspace.properties_changed_event.add_callback([this](auto &props){
+            _preview = std::make_unique<Preview>(_workspace.get_timeline(), props);
         });
 
         // Initialize preview worker

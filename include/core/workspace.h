@@ -17,9 +17,15 @@ namespace core
     public:
         Workspace(WorkspaceProperties props);
 
-        WorkspaceProperties &get_props()
+        const WorkspaceProperties &get_props()
         {
             return _props;
+        }
+
+        void set_props(const WorkspaceProperties &props)
+        {
+            _props = props;
+            properties_changed_event.notify(_props);
         }
 
         core::timestamp get_cursor() const
@@ -113,6 +119,8 @@ namespace core
         {
             return _preview_active;
         }
+
+        Event<WorkspaceProperties&> properties_changed_event;
 
     private:
         logging::Logger *_logger;

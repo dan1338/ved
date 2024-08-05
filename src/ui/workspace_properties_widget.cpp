@@ -35,7 +35,7 @@ namespace ui
 
             if (ImGui::Button("Save"))
             {
-                _workspace.get_props() = _props;
+                _workspace.set_props(_props);
 
                 _opened = false;
                 _window._show_workspace_props = false;
