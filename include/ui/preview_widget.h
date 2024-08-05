@@ -39,6 +39,30 @@ namespace ui
         
         struct Preview
         {
+            Preview(core::Workspace &workspace):
+                workspace(workspace),
+                composer(workspace.get_timeline(), workspace.get_props())
+            {
+            }
+
+            ~Preview()
+            {
+                in_seek.close();
+                in_track_events.close();
+
+                while (!out_frames.empty())
+                {
+                    PreviewFrame frame;
+                    out_frames >> frame;
+                    
+                    av_frame_unref(frame.second);
+                }
+
+                out_frames.close();
+
+                thread.join();
+            }
+
             core::Workspace &workspace;
 
             core::VideoComposer composer;
@@ -61,52 +85,53 @@ namespace ui
             std::thread thread{[this](){
                 auto logger = logging::get_logger("PreviewWidget::worker");
 
-                while (1)
+                for (auto seek_req : in_seek)
                 {
-                    for (auto seek_req : in_seek)
+                    LOG_DEBUG(logger, "Received seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+
+                    // Drop all but the latest request for best latency
+                    while (!in_seek.empty())
                     {
-                        LOG_DEBUG(logger, "Received seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+                        in_seek >> seek_req;
+                        LOG_DEBUG(logger, "Have newer seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+                    }
 
-                        // Drop all but the latest request for best latency
-                        while (!in_seek.empty())
+                    const auto &[seek_id, position] = seek_req;
+                    composer.seek(position);
+
+                    while (in_seek.empty() && !in_seek.closed())
+                    {
+                        while (!in_track_events.empty())
                         {
-                            in_seek >> seek_req;
-                            LOG_DEBUG(logger, "Have newer seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
-                        }
+                            TrackEvent track_event;
+                            in_track_events >> track_event;
 
-                        const auto &[seek_id, position] = seek_req;
-                        composer.seek(position);
-
-                        while (in_seek.empty())
-                        {
-                            while (!in_track_events.empty())
+                            if (const auto &event_removed = std::get_if<TrackRemoved>(&track_event))
                             {
-                                TrackEvent track_event;
-                                in_track_events >> track_event;
-
-                                if (const auto &event_removed = std::get_if<TrackRemoved>(&track_event))
-                                {
-                                    composer.remove_track(event_removed->id);
-                                }
-                                else if (const auto &event_added = std::get_if<TrackAdded>(&track_event))
-                                {
-                                    composer.update_track(*event_added->track);
-                                }
-                                else if (const auto &event_modified = std::get_if<TrackModified>(&track_event))
-                                {
-                                    composer.update_track(*event_modified->track);
-                                }
+                                composer.remove_track(event_removed->id);
                             }
-
-                            auto *frame = composer.next_frame(AVMEDIA_TYPE_VIDEO);
-                            LOG_DEBUG(logger, "Frame ready, pts = {}", frame->pts);
-                            out_frames << PreviewFrame{seek_id, frame};
-                            LOG_DEBUG(logger, "Frame sent, pts = {}", frame->pts);
+                            else if (const auto &event_added = std::get_if<TrackAdded>(&track_event))
+                            {
+                                composer.update_track(*event_added->track);
+                            }
+                            else if (const auto &event_modified = std::get_if<TrackModified>(&track_event))
+                            {
+                                composer.update_track(*event_modified->track);
+                            }
                         }
+
+                        auto *frame = composer.next_frame(AVMEDIA_TYPE_VIDEO);
+                        LOG_DEBUG(logger, "Frame ready, pts = {}", frame->pts);
+                        out_frames << PreviewFrame{seek_id, frame};
+                        LOG_DEBUG(logger, "Frame sent, pts = {}", frame->pts);
                     }
                 }
+
+                LOG_INFO(logger, "Stopping thread");
             }};
-        } _preview;
+        };
+
+        std::unique_ptr<Preview> _preview;
 
         struct CbUserData
         {

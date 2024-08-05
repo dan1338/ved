@@ -26,9 +26,10 @@ namespace ui
 {
     PreviewWidget::PreviewWidget(MainWindow &window):
         Widget(window),
-        _workspace(window._workspace),
-        _preview(Preview{_workspace, {_workspace.get_timeline(), _workspace.get_props()}})
+        _workspace(window._workspace)
     {
+        _preview = std::make_unique<Preview>(_workspace);
+
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);
         glGenBuffers(1, &_cb_user.ebo);
@@ -48,11 +49,11 @@ namespace ui
         // also calculate the end time and notify MainWindow of it
         _window._buffer_swapped_event.add_callback([this](core::timestamp display_time) {
             const bool set_display_time =
-                _preview.last_frame && !_preview.last_frame_display_time.has_value();
+                _preview->last_frame && !_preview->last_frame_display_time.has_value();
 
             if (set_display_time)
             {
-                _preview.last_frame_display_time.emplace(display_time);
+                _preview->last_frame_display_time.emplace(display_time);
             }
         });
 
@@ -63,23 +64,23 @@ namespace ui
             const auto &track = timeline.get_track(track_id);
 
             Preview::TrackModified event{std::make_unique<core::Timeline::Track>(track)};
-            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
+            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
         });
 
         timeline.track_added_event.add_callback([this, &timeline](auto track_id){
             const auto &track = timeline.get_track(track_id);
 
             Preview::TrackAdded event{std::make_unique<core::Timeline::Track>(track)};
-            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
+            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
         });
 
         timeline.track_removed_event.add_callback([this](auto track_id){
             Preview::TrackRemoved event{track_id};
-            _preview.in_track_events << Preview::TrackEvent{std::move(event)};
+            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
         });
 
         // Initialize preview worker
-        _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, 0s};
+        _preview->in_seek << Preview::SeekRequest{++_preview->seek_id, 0s};
     }
 
     PreviewWidget::~PreviewWidget()
@@ -87,6 +88,7 @@ namespace ui
         glDeleteBuffers(1, &_cb_user.vbo);
         glDeleteBuffers(1, &_cb_user.ebo);
         glDeleteTextures(1, &_cb_user.texture);
+        _preview->in_seek.close();
     }
 
     void PreviewWidget::show()
@@ -96,28 +98,28 @@ namespace ui
         {
             const auto cursor = _workspace.get_cursor();
 
-            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview.seek_id + 1, cursor / 1.0s);
+            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview->seek_id + 1, cursor / 1.0s);
 
-            _preview.in_seek << Preview::SeekRequest{++_preview.seek_id, cursor};
-            _preview.last_frame = nullptr;
+            _preview->in_seek << Preview::SeekRequest{++_preview->seek_id, cursor};
+            _preview->last_frame = nullptr;
         }
 
-        bool should_pull_frame = !_preview.last_frame;
+        bool should_pull_frame = !_preview->last_frame;
         core::timestamp frame_sync_time{0s};
 
         if (_workspace.is_preview_active())
         {
             // If current frame has ended, ask for a new one
-            if (const auto *frame = _preview.last_frame)
+            if (const auto *frame = _preview->last_frame)
             {
-                if (!_preview.last_frame_display_time.has_value())
+                if (!_preview->last_frame_display_time.has_value())
                 {
                     LOG_WARNING(logger, "No display time, frame has not been displayed?");
                 }
                 else
                 {
                     frame_sync_time =
-                        _preview.last_frame_display_time.value() + core::timestamp{frame->duration};
+                        _preview->last_frame_display_time.value() + core::timestamp{frame->duration};
 
                     const auto time_remaining = (frame_sync_time - now());
 
@@ -136,30 +138,30 @@ namespace ui
         }
 
         // Try fetch a frame
-        if (should_pull_frame && !_preview.out_frames.empty())
+        if (should_pull_frame && !_preview->out_frames.empty())
         {
             Preview::PreviewFrame frame;
 
-            while (!_preview.out_frames.empty())
+            while (!_preview->out_frames.empty())
             {
-                _preview.out_frames >> frame;
+                _preview->out_frames >> frame;
 
                 // Discard the frame if it has old seek id. Newer frames OTW
-                if (frame.first < _preview.seek_id)
+                if (frame.first < _preview->seek_id)
                 {
                     LOG_TRACE_L1(logger, "Frame fetched and discarded");
                     av_frame_unref(frame.second);
                 }
                 else
                 {
-                    if (_preview.last_frame)
-                        av_frame_unref(_preview.last_frame);
+                    if (_preview->last_frame)
+                        av_frame_unref(_preview->last_frame);
 
                     LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", frame.second->pts);
-                    _preview.last_frame = frame.second;
-                    _workspace.set_cursor(core::timestamp{_preview.last_frame->pts}, false);
+                    _preview->last_frame = frame.second;
+                    _workspace.set_cursor(core::timestamp{_preview->last_frame->pts}, false);
 
-                    if (!_preview.last_frame_display_time.has_value())
+                    if (!_preview->last_frame_display_time.has_value())
                     {
                         LOG_WARNING(logger, "No display time, frame has not been displayed?");
                     }
@@ -168,10 +170,10 @@ namespace ui
                         _window._frame_sync_time = frame_sync_time;
 
                         LOG_DEBUG(logger, "Expiring frame lifetime was ({} - {})",
-                                _preview.last_frame_display_time.value() / 1.0s, frame_sync_time / 1.0s);
+                                _preview->last_frame_display_time.value() / 1.0s, frame_sync_time / 1.0s);
                     }
 
-                    _preview.last_frame_display_time.reset();
+                    _preview->last_frame_display_time.reset();
 
                     break;
                 }
@@ -183,9 +185,9 @@ namespace ui
         {
             auto *draw_list = ImGui::GetWindowDrawList();
 
-            if (_preview.last_frame)
+            if (_preview->last_frame)
             {
-                auto *frame = _preview.last_frame;
+                auto *frame = _preview->last_frame;
                 _cb_user.img_size.x = frame->width;
                 _cb_user.img_size.y = frame->height;
 
