@@ -88,8 +88,9 @@ namespace core
             // TODO: replace with sorted container
             std::optional<size_t> clip_at(core::timestamp position);
 
-            void add_clip(core::MediaFile file, core::timestamp position = 0s);
+            Clip &add_clip(core::MediaFile file, core::timestamp position = 0s);
             void move_clip(Clip &clip, core::timestamp new_position);
+            void split_clip(Clip &clip, core::timestamp split_position);
 
             void translate_clip(Clip &clip, float dx, float dy);
             void scale_clip(Clip &clip, float dx, float dy);

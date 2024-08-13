@@ -320,6 +320,19 @@ namespace ui
             }
         }
 
+        // Split clip
+        if (ImGui::IsKeyPressed(ImGuiKey_S, false))
+        {
+            const auto position = _workspace.get_cursor();
+            const auto clip_idx = track.clip_at(position);
+
+            if (clip_idx.has_value())
+            {
+                auto &clip = track.clips[*clip_idx];
+                track.split_clip(clip, position);
+            }
+        }
+
         // Hover highlight
         if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
         {

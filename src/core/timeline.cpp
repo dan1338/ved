@@ -31,7 +31,7 @@ namespace core
         return {};
     }
 
-    void Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
+    Timeline::Clip &Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
     {
         Clip clip{timeline->_clip_id_counter++, id, position, 0s, file.duration, file};
 
@@ -44,12 +44,27 @@ namespace core
 
         clips.push_back(clip);
         timeline->clip_added_event.notify(clip);
+
+        return clips.back();
     }
 
     void Timeline::Track::move_clip(Clip &clip, core::timestamp new_position)
     {
         clip.position = core::align_timestamp(new_position, timeline->_props.frame_dt());
         timeline->clip_moved_event.notify(clip);
+    }
+
+    void Timeline::Track::split_clip(Clip &clip, core::timestamp split_position)
+    {
+        const auto lhs_duration = split_position - clip.position;
+        const auto rhs_duration = clip.duration - lhs_duration;
+
+        auto &new_clip = add_clip(clip.file, split_position);
+        new_clip.duration = rhs_duration;
+
+        clip.duration = lhs_duration;
+
+        timeline->clip_resized_event.notify(clip);
     }
 
     void Timeline::Track::translate_clip(Clip &clip, float dx, float dy)
