@@ -65,7 +65,7 @@ namespace core
         timeline.foreach_track([this](Timeline::Track &track) {
             add_track(track);
 
-            for (auto &clip : track.clips)
+            for (auto &[clip_id, clip] : track.clips)
                 add_clip(clip);
 
             return true;
@@ -85,7 +85,7 @@ namespace core
 
         add_track(track);
 
-        for (auto &clip : track.clips)
+        for (auto &[clip_id, clip] : track.clips)
         {
             if (_sources.find(clip.id) == _sources.end())
                 add_clip(clip);
@@ -145,12 +145,12 @@ namespace core
 
         for (auto &[track_id, track] : _tracks)
         {
-            auto clip_idx = track.clip_at(ts);
+            auto clip_id = track.clip_at(ts);
             
-            if (!clip_idx.has_value()) // No clip here
+            if (!clip_id.has_value()) // No clip here
                 continue;
 
-            auto &clip = track.clips[*clip_idx];
+            auto &clip = track.clips[*clip_id];
             auto &source = _sources.at(clip.id);
 
             AVFrame *clip_frame = source.frame_at(ts - clip.position + clip.start_time);

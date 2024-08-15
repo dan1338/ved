@@ -226,11 +226,11 @@ namespace ui
 
                         auto &timeline = _workspace.get_timeline();
                         auto &active_track = timeline.get_track(_workspace.get_active_track_id());
-                        const auto clip_idx = active_track.clip_at(_workspace.get_cursor());
+                        const auto clip_id = active_track.clip_at(_workspace.get_cursor());
 
-                        if (clip_idx.has_value())
+                        if (clip_id.has_value())
                         {
-                            auto &clip = active_track.clips[*clip_idx];
+                            auto &clip = active_track.clips[*clip_id];
 
                             const auto win_size = ImGui::GetWindowSize();
 

@@ -6,7 +6,7 @@ namespace core
     {
         core::timestamp low{0}, high{0};
 
-        for (const auto &clip : clips)
+        for (const auto &[clip_id, clip] : clips)
         {
             low = std::min(low, clip.position);
             high = std::max(high, clip.end_position());
@@ -16,15 +16,13 @@ namespace core
     }
 
     // TODO: replace with sorted container
-    std::optional<size_t> Timeline::Track::clip_at(core::timestamp position)
+    std::optional<Timeline::ClipID> Timeline::Track::clip_at(core::timestamp position)
     {
-        for (size_t i = 0; i < clips.size(); i++)
+        for (const auto &[clip_id, clip] : clips)
         {
-            const auto &clip = clips[i];
-
             if (position >= clip.position && position <= (clip.position + clip.duration))
             {
-                return i;
+                return clip_id;
             }
         }
 
@@ -42,10 +40,10 @@ namespace core
 
         clip.transforms.emplace(ClipTransform{});
 
-        clips.push_back(clip);
+        const auto [it, _] = clips.emplace(clip.id, clip);
         timeline->clip_added_event.notify(clip);
 
-        return clips.back();
+        return it->second;
     }
 
     void Timeline::Track::move_clip(Clip &clip, core::timestamp new_position)
@@ -61,6 +59,7 @@ namespace core
 
         auto &new_clip = add_clip(clip.file, split_position);
         new_clip.duration = rhs_duration;
+        new_clip.start_time = clip.start_time + lhs_duration;
 
         clip.duration = lhs_duration;
 

@@ -81,12 +81,12 @@ namespace core
 
             TrackID id;
             Timeline *timeline;
-            std::vector<Clip> clips;
+            std::map<ClipID, Clip> clips;
 
             std::pair<core::timestamp, core::timestamp> bounds() const;
 
             // TODO: replace with sorted container
-            std::optional<size_t> clip_at(core::timestamp position);
+            std::optional<ClipID> clip_at(core::timestamp position);
 
             Clip &add_clip(core::MediaFile file, core::timestamp position = 0s);
             void move_clip(Clip &clip, core::timestamp new_position);

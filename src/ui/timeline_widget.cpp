@@ -247,12 +247,12 @@ namespace ui
         if (ImGui::IsWindowHovered())
         {
             const float track_x = (ImGui::GetMousePos().x - win_pos.x);
-            const auto hover_clip_idx = track.clip_at(winpos_to_timestamp(track_x, parent_width));
+            const auto hover_clip_id = track.clip_at(winpos_to_timestamp(track_x, parent_width));
 
             // Clip dragging behavior
-            if (hover_clip_idx.has_value())
+            if (hover_clip_id.has_value())
             {
-                auto &clip = track.clips[*hover_clip_idx];
+                auto &clip = track.clips[*hover_clip_id];
                 const auto [px_start, px_end] = get_clip_pixel_bounds(clip, parent_width);
 
                 const float dist_thresh = 10.0f;
@@ -324,11 +324,11 @@ namespace ui
         if (ImGui::IsKeyPressed(ImGuiKey_S, false))
         {
             const auto position = _workspace.get_cursor();
-            const auto clip_idx = track.clip_at(position);
+            const auto clip_id = track.clip_at(position);
 
-            if (clip_idx.has_value())
+            if (clip_id.has_value())
             {
-                auto &clip = track.clips[*clip_idx];
+                auto &clip = track.clips[*clip_id];
                 track.split_clip(clip, position);
             }
         }
@@ -356,7 +356,7 @@ namespace ui
 
         draw_list->AddQuadFilled({x, y}, {x + w, y}, {x + w, y + h}, {x, y + h}, bg_color);
 
-        for (const auto &clip : track.clips)
+        for (const auto &[clip_id, clip] : track.clips)
         {
             const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, parent_width);
             const float clip_w = timestamp_to_winpos(clip.duration, parent_width);
