@@ -29,7 +29,7 @@ namespace ui
         Widget(window),
         _workspace(core::app->get_workspace())
     {
-        _preview = std::make_unique<Preview>(_workspace.get_timeline(), _workspace.get_props());
+        _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), _workspace.get_props());
 
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);
@@ -64,29 +64,29 @@ namespace ui
         timeline.track_modified_event.add_callback([this, &timeline](auto track_id){
             const auto &track = timeline.get_track(track_id);
 
-            Preview::TrackModified event{std::make_unique<core::Timeline::Track>(track)};
-            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
+            PreviewWorker::TrackModified event{std::make_unique<core::Timeline::Track>(track)};
+            _preview->in_track_events << PreviewWorker::TrackEvent{std::move(event)};
         });
 
         timeline.track_added_event.add_callback([this, &timeline](auto track_id){
             const auto &track = timeline.get_track(track_id);
 
-            Preview::TrackAdded event{std::make_unique<core::Timeline::Track>(track)};
-            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
+            PreviewWorker::TrackAdded event{std::make_unique<core::Timeline::Track>(track)};
+            _preview->in_track_events << PreviewWorker::TrackEvent{std::move(event)};
         });
 
         timeline.track_removed_event.add_callback([this](auto track_id){
-            Preview::TrackRemoved event{track_id};
-            _preview->in_track_events << Preview::TrackEvent{std::move(event)};
+            PreviewWorker::TrackRemoved event{track_id};
+            _preview->in_track_events << PreviewWorker::TrackEvent{std::move(event)};
         });
 
         // Reload worker on properties change
         _workspace.properties_changed_event.add_callback([this](auto &props){
-            _preview = std::make_unique<Preview>(_workspace.get_timeline(), props);
+            _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), props);
         });
 
         // Initialize preview worker
-        _preview->in_seek << Preview::SeekRequest{++_preview->seek_id, 0s};
+        _preview->in_seek << PreviewWorker::SeekRequest{++_preview->seek_id, 0s};
     }
 
     PreviewWidget::~PreviewWidget()
@@ -106,7 +106,7 @@ namespace ui
 
             LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview->seek_id + 1, cursor / 1.0s);
 
-            _preview->in_seek << Preview::SeekRequest{++_preview->seek_id, cursor};
+            _preview->in_seek << PreviewWorker::SeekRequest{++_preview->seek_id, cursor};
             _preview->last_frame = nullptr;
         }
 
@@ -146,7 +146,7 @@ namespace ui
         // Try fetch a frame
         if (should_pull_frame && !_preview->out_frames.empty())
         {
-            Preview::PreviewFrame frame;
+            PreviewWorker::PreviewFrame frame;
 
             while (!_preview->out_frames.empty())
             {
@@ -305,5 +305,105 @@ namespace ui
         }
 
         ImGui::End();
+    }
+
+    PreviewWorker::PreviewWorker():
+        _thread([this](){ run(); })
+    {
+    }
+
+    PreviewWorker::~PreviewWorker()
+    {
+        in_seek.close();
+        in_track_events.close();
+
+        while (!out_frames.empty())
+        {
+            PreviewFrame frame;
+            out_frames >> frame;
+            
+            av_frame_unref(frame.second);
+        }
+
+        out_frames.close();
+
+        _thread.join();
+    }
+
+    LivePreviewWorker::LivePreviewWorker(core::Timeline &timeline, const core::WorkspaceProperties &props):
+        PreviewWorker(), _composer(timeline, props)
+    {
+    }
+
+    void LivePreviewWorker::run()
+    {
+        auto logger = logging::get_logger("LivePreviewWorker");
+
+        for (auto seek_req : in_seek)
+        {
+            LOG_DEBUG(logger, "Received seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+
+            // Drop all but the latest request for best latency
+            while (!in_seek.empty())
+            {
+                in_seek >> seek_req;
+                LOG_DEBUG(logger, "Have newer seek request, seek_id = {}, cursor = {}", seek_req.first, seek_req.second.count());
+            }
+
+            const auto &[seek_id, position] = seek_req;
+            _composer.seek(position);
+
+            while (in_seek.empty() && !in_seek.closed())
+            {
+                while (!in_track_events.empty())
+                {
+                    TrackEvent track_event;
+                    in_track_events >> track_event;
+
+                    if (const auto &event_removed = std::get_if<TrackRemoved>(&track_event))
+                    {
+                        _composer.remove_track(event_removed->id);
+                    }
+                    else if (const auto &event_added = std::get_if<TrackAdded>(&track_event))
+                    {
+                        _composer.update_track(*event_added->track);
+                    }
+                    else if (const auto &event_modified = std::get_if<TrackModified>(&track_event))
+                    {
+                        _composer.update_track(*event_modified->track);
+                    }
+                }
+
+                auto *frame = _composer.next_frame(AVMEDIA_TYPE_VIDEO);
+                LOG_DEBUG(logger, "Frame ready, pts = {}", frame->pts);
+                out_frames << PreviewFrame{seek_id, frame};
+                LOG_DEBUG(logger, "Frame sent, pts = {}", frame->pts);
+            }
+        }
+
+        LOG_INFO(logger, "Stopping thread");
+    };
+
+    RenderPreviewWorker::RenderPreviewWorker(core::RenderSession &render_session):
+        PreviewWorker(), _render_session(render_session)
+    {
+        _render_session.frame_ready_event.add_callback([this](auto *frame){
+            _ready_frames << frame;
+        });
+
+        _render_session.finished_event.add_callback([this](){
+            _ready_frames << (AVFrame*)nullptr;
+        });
+    }
+
+    void RenderPreviewWorker::run()
+    {
+        for (auto *frame : _ready_frames)
+        {
+            if (frame == nullptr)
+                break;
+
+            out_frames << PreviewFrame{0, frame};
+        }
     }
 }

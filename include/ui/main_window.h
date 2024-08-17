@@ -17,6 +17,7 @@
 #include "ui/preview_widget.h"
 #include "ui/import_widget.h"
 #include "ui/workspace_properties_widget.h"
+#include "ui/render_widget.h"
 
 namespace ui
 {
@@ -56,5 +57,6 @@ namespace ui
         friend class ImportWidget;
         friend class PreviewWidget;
         friend class WorkspacePropertiesWidget;
+        friend class RenderWidget;
     };
 }
