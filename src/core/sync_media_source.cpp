@@ -35,6 +35,14 @@ namespace core
             ts = 0s;
         }
 
+        // If newly requested ts is still less than last returned frame
+        // Means we want to keep displaying the last frame
+        if (ts <= _last_ret_ts && ts > _last_req_ts)
+        {
+            LOG_DEBUG(logger, "repeat last frame, ts = {}s", ts / 1.0s);
+            ts = _last_ret_ts;
+        }
+
         auto &cache = file_caches.at(_file.path);
 
         if (auto it = cache.find(ts.count()); it != cache.end())
@@ -45,7 +53,7 @@ namespace core
 
         // Because MediaSource only allows for fetching next_frame
         // we might want to create a new one a seek closer to desired timestamp
-        if (ts <= _last_ts || ts > _last_ts + seek_ahead_threshold)
+        if (ts <= _last_req_ts || ts > _last_req_ts + seek_ahead_threshold)
         {
             LOG_DEBUG(logger, "reconstruct and seek");
             _raw_source = ffmpeg::open_media_source(_file);
@@ -54,14 +62,16 @@ namespace core
 
         AVFrame *frame{nullptr};
         core::timestamp frame_ts;
+        size_t fetch_count = 0;
 
-        // Get frame which aligns with current timestamp
+        // Get next frame which aligns with current timestamp
         do
         {
             if (frame)
                 av_frame_unref(frame);
 
             frame = _raw_source->next_frame(AVMEDIA_TYPE_VIDEO);
+            ++fetch_count;
 
             if (!frame) // Early EOF
             {
@@ -72,7 +82,10 @@ namespace core
         }
         while (frame_ts < ts);
 
-        _last_ts = ts;
+        LOG_DEBUG(logger, "frame_at return, fetch_count = {}, ts = {}s", fetch_count, frame_ts / 1.0s);
+
+        _last_req_ts = ts;
+        _last_ret_ts = frame_ts;
 
         if (frame)
             cache[ts.count()] = av_frame_clone(frame);
