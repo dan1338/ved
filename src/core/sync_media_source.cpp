@@ -75,7 +75,7 @@ namespace core
 
             if (!frame) // Early EOF
             {
-                break;
+                return nullptr;
             }
 
             frame_ts = core::timestamp(frame->pts);
