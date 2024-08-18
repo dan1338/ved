@@ -1,13 +1,13 @@
 #include "ui/import_widget.h"
 
 #include "ui/main_window.h"
+#include "core/application.h"
 
 namespace ui
 {
-    ImportWidget::ImportWidget(MainWindow &window, core::io::Directory &import_dir):
+    ImportWidget::ImportWidget(MainWindow &window):
         Widget(window),
-        _workspace(window._workspace),
-        _import_dir(import_dir)
+        _current_dir({core::app->get_working_dir()})
     {
     }
 
@@ -19,25 +19,24 @@ namespace ui
 
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
-            auto entries = _import_dir.iter();
+            auto entries = _current_dir.iter();
 
             if (ImGui::TreeNodeEx("..", node_flags) && ImGui::IsItemClicked()) {    
-                _import_dir = _import_dir.back();
+                _current_dir = _current_dir.back();
             }
 
             for (const auto &ent : entries) {
                 if (const auto *dir = std::get_if<core::io::Directory>(&ent))
                 {
                     if (ImGui::TreeNodeEx(dir->path.filename().c_str(), node_flags) && ImGui::IsItemClicked()) {
-                        _import_dir = *dir;
+                        _current_dir = *dir;
                     }
                 }
                 else if (const auto *file = std::get_if<core::io::File>(&ent))
                 {
                     if (ImGui::TreeNodeEx(file->path.filename().c_str(), node_flags) && ImGui::IsItemClicked()) {
-                        auto &timeline = _workspace.get_timeline();
-                        auto &active_track = timeline.get_track(_workspace.get_active_track_id());
-                        active_track.add_clip(file->open(), _workspace.get_cursor());
+                        auto &workspace = core::app->get_workspace();
+                        workspace.add_clip(file->open());
                     }
                 }
             }

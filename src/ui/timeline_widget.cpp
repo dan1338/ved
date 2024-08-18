@@ -1,10 +1,11 @@
 #include "ui/timeline_widget.h"
 
 #include "ui/main_window.h"
-#include "fmt/format.h"
-#include "imgui.h"
+#include "core/application.h"
 
+#include "fmt/format.h"
 #include "logging.h"
+#include "imgui.h"
 
 #include <filesystem>
 
@@ -14,15 +15,15 @@ namespace ui
 {
     TimelineWidget::TimelineWidget(MainWindow &window, Properties &props):
         Widget(window),
-        _workspace(window._workspace),
-        _props(props)
+        _props(props),
+        _workspace(core::app->get_workspace()),
+        _timeline(_workspace.get_timeline())
     {
     }
 
     void TimelineWidget::show()
     {
-        auto &timeline = _workspace.get_timeline();
-        auto &active_track = timeline.get_track(_workspace.get_active_track_id());
+        auto &active_track = _timeline.get_track(_workspace.get_active_track_id());
 
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
@@ -49,7 +50,7 @@ namespace ui
 
             if (ImGui::Button("Add Track"))
             {
-                timeline.add_track();
+                _timeline.add_track();
             }
 
             ImGui::SameLine();
@@ -71,10 +72,10 @@ namespace ui
             ImGui::SetNextItemWidth(100.0);
             ImGui::SameLine();
 
-            float input_duration = timeline.get_duration() / 1.0s;
+            float input_duration = _timeline.get_duration() / 1.0s;
             if (ImGui::InputFloat("Duration (seconds)", &input_duration, 0.0f, 0.0f, "%.2f", ImGuiInputTextFlags_EnterReturnsTrue))
             {
-                timeline.set_duration(core::timestamp_from_double(input_duration));
+                _timeline.set_duration(core::timestamp_from_double(input_duration));
             }
 
             show_tracks();
@@ -101,8 +102,6 @@ namespace ui
 
     void TimelineWidget::show_tracks()
     {
-        auto &timeline = _workspace.get_timeline();
-
         // Emplace track index into here to remove track
         // Make the assumtion that only one track can be removed per frame
         std::optional<core::Timeline::TrackID> track_to_remove;
@@ -113,7 +112,7 @@ namespace ui
             ImGui::SetColumnWidth(0, 100.0);
 
             // Draw headers
-            timeline.foreach_track([&](auto &track){
+            _timeline.foreach_track([&](auto &track){
                 bool is_focused = (track.id == _workspace.get_active_track_id());
                 std::string name{fmt::format("Track header {}", track.id)};
 
@@ -151,7 +150,7 @@ namespace ui
             // Draw clips
             if (ImGui::BeginChild("Track clips", {}, ImGuiChildFlags_AutoResizeY, ImGuiWindowFlags_AlwaysHorizontalScrollbar))
             {
-                timeline.foreach_track([&](auto &track){
+                _timeline.foreach_track([&](auto &track){
                     std::string name{fmt::format("Track clips {}", track.id)};
                     bool is_focused = (track.id == _workspace.get_active_track_id());
 
@@ -162,7 +161,7 @@ namespace ui
                     _track_window_x = win_pos.x;
                     _track_window_w = win_size.x;
 
-                    const float total_width = timestamp_to_winpos(timeline.get_duration(), win_size.x);
+                    const float total_width = timestamp_to_winpos(_timeline.get_duration(), win_size.x);
 
                     // Track timeline
                     if (ImGui::BeginChild((name + "_clips").c_str(), {total_width, _props.track_height}, _child_flags, 0))
@@ -190,9 +189,9 @@ namespace ui
         ImGui::EndChild();
 
         // Remove track if asked to
-        if (track_to_remove.has_value() && timeline.get_track_count() > 1)
+        if (track_to_remove.has_value() && _timeline.get_track_count() > 1)
         {
-            timeline.rm_track(*track_to_remove);
+            _timeline.rm_track(*track_to_remove);
         }
     }
 
@@ -233,8 +232,7 @@ namespace ui
 
     void TimelineWidget::show_track_clips(core::Timeline::TrackID track_id, bool is_focused, float parent_width)
     {
-        auto &timeline = _workspace.get_timeline();
-        auto &track = timeline.get_track(track_id);
+        auto &track = _timeline.get_track(track_id);
 
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();

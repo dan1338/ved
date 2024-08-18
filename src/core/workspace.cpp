@@ -37,5 +37,11 @@ namespace core
         const auto &default_track = _timeline.add_track(); // Default track
         _active_track_id = default_track.id;
     }
+
+    void Workspace::add_clip(core::MediaFile media_file)
+    {
+        auto &active_track = _timeline.get_track(_active_track_id);
+        active_track.add_clip(media_file, _cursor);
+    }
 }
 

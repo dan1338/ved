@@ -13,8 +13,6 @@
 
 namespace ui
 {
-    class MainWindow;
-
     class TimelineWidget : public Widget
     {
     public:
@@ -34,8 +32,9 @@ namespace ui
         static constexpr int _win_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
         static constexpr int _child_flags = ImGuiChildFlags_Border;
 
-        core::Workspace &_workspace;
         Properties &_props;
+        core::Workspace &_workspace;
+        core::Timeline &_timeline;
 
         // We save the last track windows x,w
         // here as a workaround for ImGui::FindWindow not exactly working :)
@@ -82,7 +81,7 @@ namespace ui
         {
             _dragging_operation = std::make_unique<TOperation>();
             _dragging_operation->init_state = init_state;
-            _dragging_operation->timeline = &_workspace.get_timeline();
+            _dragging_operation->timeline = &_timeline;
         }
 
         bool can_begin_dragging() const

@@ -52,6 +52,7 @@ add_executable(ved
     src/ffmpeg/io.cpp
     src/ffmpeg/frame_converter.cpp
     src/ffmpeg/media_source.cpp
+    src/core/application.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
     src/core/video_composer.cpp

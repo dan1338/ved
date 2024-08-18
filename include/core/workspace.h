@@ -120,6 +120,9 @@ namespace core
             return _preview_active;
         }
 
+        // Insert clip into currently active track at cursor position
+        void add_clip(core::MediaFile media_file);
+
         Event<WorkspaceProperties&> properties_changed_event;
 
     private:

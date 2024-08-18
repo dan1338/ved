@@ -20,8 +20,6 @@
 
 namespace ui
 {
-    class MainWindow;
-
     class PreviewWidget : public Widget
     {
     public:

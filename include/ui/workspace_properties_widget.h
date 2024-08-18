@@ -10,8 +10,6 @@
 
 namespace ui
 {
-    class MainWindow;
-
     class WorkspacePropertiesWidget : public Widget
     {
     public:
@@ -23,7 +21,6 @@ namespace ui
         static constexpr auto *_widget_name = ui::widget_ids::workspace_properties;
         static constexpr int _win_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
-        core::Workspace &_workspace;
         core::WorkspaceProperties _props;
         bool _opened{false};
     };

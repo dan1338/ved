@@ -29,22 +29,17 @@ namespace ui
             ImVec4 dark_bg_color;
         };
 
-        MainWindow(int init_w, int init_h, Style style);
-        bool init(int w, int h);
+        MainWindow(GLFWwindow *window, Style style);
         void run();
 
     private:
         GLFWwindow *_window;
         ImGuiContext *_imgui_ctx;
         bool _layout_done{false};
-        bool _opengl_init;
         core::timestamp _frame_delta;
         core::timestamp _frame_sync_time;
 
         core::Event<core::timestamp> _buffer_swapped_event;
-
-        core::io::Directory _import_dir;
-        core::Workspace _workspace;
 
         ui::TimelineWidget::Properties _timeline_props;
 

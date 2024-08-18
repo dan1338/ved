@@ -1,6 +1,7 @@
 #include "ui/main_window.h"
 #include "ui/helpers.h"
 #include "core/time.h"
+#include "core/application.h"
 
 #include <stdexcept>
 #include <unistd.h>
@@ -34,42 +35,19 @@ namespace ui
         io.Fonts->AddFontFromFileTTF("./fonts/Roboto-Regular.ttf", 18);
     }
 
-    bool MainWindow::init(int w, int h)
+    MainWindow::MainWindow(GLFWwindow *window, Style style):
+        _window(window),
+        _timeline_widget(*this, _timeline_props),
+        _import_widget(*this),
+        _preview_widget(*this),
+        _workspace_props_widget(*this)
     {
-        if (glfwInit() != GLFW_TRUE) {
-            throw std::runtime_error("glfwInit");
-        }
-
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-        glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-
-        _window = glfwCreateWindow(w, h, "ved", nullptr, nullptr);
-
-        glfwMakeContextCurrent(_window);
-        glfwSwapInterval(1);
-
         _imgui_ctx = ImGui::CreateContext();
         ImGui_ImplGlfw_InitForOpenGL(_window, true);
         ImGui_ImplOpenGL3_Init("#version 330 core");
 
         ImGui::GetIO().ConfigFlags |= ImGuiConfigFlags_DockingEnable;
 
-        if (glewInit() != GLEW_OK) {
-            throw std::runtime_error("glewInit");
-        }
-
-        return true;
-    }
-
-    MainWindow::MainWindow(int init_w, int init_h, Style style):
-        _opengl_init(init(init_w, init_h)),
-        _import_dir({getcwd(0, 0)}),
-        _workspace({1280, 720, 30}),
-        _timeline_widget(*this, _timeline_props),
-        _import_widget(*this, _import_dir),
-        _preview_widget(*this),
-        _workspace_props_widget(*this)
-    {
         set_imgui_style(style);
 
         _timeline_props.track_height = 65.0f;
@@ -106,6 +84,8 @@ namespace ui
 
     void MainWindow::run()
     {
+        auto &workspace = core::app->get_workspace();
+
         while (!glfwWindowShouldClose(_window)) {
             const auto frame_start_time = now();
             _frame_sync_time = 0s;
@@ -119,22 +99,22 @@ namespace ui
             if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) {
                 LOG_DEBUG(logger, "Space pressed");
 
-                if (_workspace.is_preview_active())
-                    _workspace.stop_preview();
+                if (workspace.is_preview_active())
+                    workspace.stop_preview();
                 else
-                    _workspace.start_preview();
+                    workspace.start_preview();
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
                 LOG_DEBUG(logger, "Left pressed");
 
-                _workspace.decrement_cursor();
+                workspace.decrement_cursor();
             }
 
             if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
                 LOG_DEBUG(logger, "Right pressed");
 
-                _workspace.increment_cursor();
+                workspace.increment_cursor();
             }
 
             LOG_TRACE_L3(logger, "Begin ui frame");

@@ -2,6 +2,7 @@
 
 #include "ui/main_window.h"
 #include "ui/helpers.h"
+#include "core/application.h"
 
 #include "fmt/base.h"
 #include "fmt/ranges.h"
@@ -26,7 +27,7 @@ namespace ui
 {
     PreviewWidget::PreviewWidget(MainWindow &window):
         Widget(window),
-        _workspace(window._workspace)
+        _workspace(core::app->get_workspace())
     {
         _preview = std::make_unique<Preview>(_workspace.get_timeline(), _workspace.get_props());
 

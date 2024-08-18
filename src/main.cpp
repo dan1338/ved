@@ -1,18 +1,21 @@
+#include "core/application.h"
 #include "core/time.h"
-#include "ui/main_window.h"
 #include "logging.h"
 
-int main()
+int main(int argc, char **argv)
 {
     logging::init();
 
-    ui::MainWindow::Style style;
-    style.normal_bg_color = {0.18431373, 0.19215686, 0.21176471, 1.0};
-    style.dark_bg_color = {0.14431373, 0.15215686, 0.18176471, 1.0};
+    if (argc == 2)
+    {
+        core::app = std::make_unique<core::Application>(argv[argc - 1]);
+    }
+    else
+    {
+        core::app = std::make_unique<core::Application>();
+    }
 
-    ui::MainWindow window(1920, 1440, style);
-
-    window.run();
+    core::app->run();
 
     return 0;
 }

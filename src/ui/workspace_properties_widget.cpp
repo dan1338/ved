@@ -2,22 +2,24 @@
 
 #include "logging.h"
 #include "ui/main_window.h"
+#include "core/application.h"
 
 static auto logger = logging::get_logger("WorkspacePropertiesWidget");
 
 namespace ui
 {
     WorkspacePropertiesWidget::WorkspacePropertiesWidget(MainWindow &window):
-        Widget(window),
-        _workspace(window._workspace)
+        Widget(window)
     {
     }
 
     void WorkspacePropertiesWidget::show()
     {
+        auto &workspace = core::app->get_workspace();
+
         if (!_opened)
         {
-            _props = _workspace.get_props();
+            _props = workspace.get_props();
 
             _opened = true;
             ImGui::OpenPopup(_widget_name);
@@ -35,7 +37,7 @@ namespace ui
 
             if (ImGui::Button("Save"))
             {
-                _workspace.set_props(_props);
+                workspace.set_props(_props);
 
                 _opened = false;
                 _window._show_workspace_props = false;
