@@ -9,8 +9,6 @@
 
 namespace ui
 {
-    class MainWindow;
-
     class RenderWidget : public Widget
     {
     public:

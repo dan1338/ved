@@ -307,10 +307,7 @@ namespace ui
         ImGui::End();
     }
 
-    PreviewWorker::PreviewWorker():
-        _thread([this](){ run(); })
-    {
-    }
+    PreviewWorker::PreviewWorker() {}
 
     PreviewWorker::~PreviewWorker()
     {
@@ -330,9 +327,15 @@ namespace ui
         _thread.join();
     }
 
-    LivePreviewWorker::LivePreviewWorker(core::Timeline &timeline, const core::WorkspaceProperties &props):
-        PreviewWorker(), _composer(timeline, props)
+    void PreviewWorker::start()
     {
+        _thread = std::thread{[this](){ run(); }};
+    }
+
+    LivePreviewWorker::LivePreviewWorker(core::Timeline &timeline, const core::WorkspaceProperties &props):
+        _composer(timeline, props)
+    {
+        start();
     }
 
     void LivePreviewWorker::run()
@@ -385,7 +388,7 @@ namespace ui
     };
 
     RenderPreviewWorker::RenderPreviewWorker(core::RenderSession &render_session):
-        PreviewWorker(), _render_session(render_session)
+        _render_session(render_session)
     {
         _render_session.frame_ready_event.add_callback([this](auto *frame){
             _ready_frames << frame;
@@ -394,6 +397,8 @@ namespace ui
         _render_session.finished_event.add_callback([this](){
             _ready_frames << (AVFrame*)nullptr;
         });
+
+        start();
     }
 
     void RenderPreviewWorker::run()

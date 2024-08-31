@@ -22,8 +22,6 @@
 
 namespace ui
 {
-    class MainWindow;
-
     class PreviewWorker
     {
     public:
@@ -45,6 +43,8 @@ namespace ui
         struct TrackModified { std::unique_ptr<core::Timeline::Track> track; };
         using TrackEvent = std::variant<TrackRemoved, TrackAdded, TrackModified>;
         msd::channel<TrackEvent> in_track_events;
+
+        void start();
 
     protected:
         std::thread _thread;
