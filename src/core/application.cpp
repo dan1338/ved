@@ -2,6 +2,8 @@
 
 namespace core
 {
+    const auto logger = logging::get_logger("Application");
+
     std::unique_ptr<Application> app;
 
     static std::string getcwd_string()
@@ -36,9 +38,22 @@ namespace core
 
     void Application::create_main_window()
     {
-        const int width = 1920;
-        const int height = 1080;
+        int width, height;
         const int opengl_ver[2] = {3, 3};
+
+        GLFWmonitor *monitor = glfwGetPrimaryMonitor();
+
+        if (!monitor) {
+            throw std::runtime_error("No primary monitor found, glfwGetPrimaryMonitor -> null");
+        }
+
+        int xmon, ymon, wmon, hmon;
+        glfwGetMonitorWorkarea(monitor, &xmon, &ymon, &wmon, &hmon);
+
+        LOG_DEBUG(logger, "glfwGetMonitorWorkarea, workarea = ({}, {}, {}, {})", xmon, ymon, wmon, hmon);
+
+        width = wmon;
+        height = hmon;
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl_ver[0]);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl_ver[1]);
