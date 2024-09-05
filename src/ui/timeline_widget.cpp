@@ -60,6 +60,13 @@ namespace ui
                 _window._show_workspace_props = true;
             }
 
+            ImGui::SameLine();
+
+            if (ImGui::Button("Render"))
+            {
+                _window._show_render_widget = true;
+            }
+
             ImGui::SetNextItemWidth(100.0);
             ImGui::SameLine();
 

@@ -85,6 +85,16 @@ namespace ui
             _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), props);
         });
 
+        // Reload worker on begin render
+        _workspace.begin_render_event.add_callback([this](auto &session){
+            _preview = std::make_unique<RenderPreviewWorker>(session);
+        });
+
+        // Reload worker on stop render
+        _workspace.stop_render_event.add_callback([this](){
+            _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), _workspace.get_props());
+        });
+
         // Initialize preview worker
         _preview->in_seek << PreviewWorker::SeekRequest{++_preview->seek_id, 0s};
     }

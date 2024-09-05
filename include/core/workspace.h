@@ -7,6 +7,7 @@
 #include "ffmpeg/io.h"
 #include "core/time.h"
 #include "core/workspace_properties.h"
+#include "core/render_session.h"
 
 #include "logging.h"
 
@@ -124,6 +125,8 @@ namespace core
         void add_clip(core::MediaFile media_file);
 
         Event<WorkspaceProperties&> properties_changed_event;
+        Event<RenderSession&> begin_render_event;
+        Event<> stop_render_event;
 
     private:
         logging::Logger *_logger;
@@ -137,6 +140,8 @@ namespace core
         bool _preview_active{false};
 
         core::timestamp _cursor{0s};
+
+        std::unique_ptr<RenderSession> _render_session;
     };
 }
 

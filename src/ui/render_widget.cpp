@@ -1,7 +1,9 @@
 #include "ui/render_widget.h"
 
 #include "logging.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include "ui/main_window.h"
+#include "core/application.h"
 
 static auto logger = logging::get_logger("RenderWidget");
 
@@ -9,7 +11,7 @@ namespace ui
 {
     RenderWidget::RenderWidget(MainWindow &window):
         Widget(window),
-        _workspace(window._workspace)
+        _workspace(core::app->get_workspace())
     {
     }
 
@@ -27,13 +29,14 @@ namespace ui
 
         if (ImGui::BeginPopupModal(_widget_name, 0, _win_flags))
         {
-            int i;
-            ImGui::InputInt("Frame rate", &i);
+            std::string output_path = "/home/dan/Downloads";
 
-            if (ImGui::Button("Render"))
+            ImGui::InputText("Output path", &output_path);
+
+            if (ImGui::Button("Start render"))
             {
                 _opened = false;
-                _window._show_workspace_props = false;
+                _window._show_render_widget = false;
                 ImGui::CloseCurrentPopup();
             }
         }

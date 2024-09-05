@@ -48,8 +48,10 @@ namespace ui
         ui::ImportWidget _import_widget;
         ui::PreviewWidget _preview_widget;
         ui::WorkspacePropertiesWidget _workspace_props_widget;
+        ui::RenderWidget _render_widget;
 
         bool _show_workspace_props{false};
+        bool _show_render_widget{false};
 
         void layout_windows();
 
