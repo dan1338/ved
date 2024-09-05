@@ -30,6 +30,12 @@ namespace ffmpeg
             type(stream->codecpar->codec_type)
         {
             const auto &codecpar = stream->codecpar;
+
+            if (codecpar->codec_id == AV_CODEC_ID_NONE)
+            {
+                throw fmt::system_error(0, "Codec id for stream ({}) is NONE", stream->index);
+            }
+
             codec = avcodec_find_decoder(codecpar->codec_id);
             codec_ctx = avcodec_alloc_context3(codec);
 
@@ -40,6 +46,7 @@ namespace ffmpeg
             if (int err = avcodec_open2(codec_ctx, codec, nullptr) != 0)
             {
                 LOG_CRITICAL(logger, "Cannot open codec, {}", make_errstr(err));
+
                 throw fmt::system_error(err, "avcodec_open2");
             }
         }
@@ -94,21 +101,28 @@ namespace ffmpeg
 
             for (size_t i = 0; i < _format_ctx->nb_streams; i++)
             {
-                auto stream = std::make_unique<Stream>(_format_ctx->streams[i]);
-
-                // Save the first stream index of each kind
-                if (stream->type == AVMEDIA_TYPE_AUDIO && _audio_stream == -1)
+                try
                 {
-                    LOG_DEBUG(logger, "Found audio, stream index = {}", i);
-                    _audio_stream = i;
-                }
-                if (stream->type == AVMEDIA_TYPE_VIDEO && _video_stream == -1)
-                {
-                    LOG_DEBUG(logger, "Found video, stream index = {}", i);
-                    _video_stream = i;
-                }
+                    auto stream = std::make_unique<Stream>(_format_ctx->streams[i]);
 
-                _streams.push_back(std::move(stream));
+                    // Save the first stream index of each kind
+                    if (stream->type == AVMEDIA_TYPE_AUDIO && _audio_stream == -1)
+                    {
+                        LOG_DEBUG(logger, "Found audio, stream index = {}", i);
+                        _audio_stream = i;
+                    }
+                    if (stream->type == AVMEDIA_TYPE_VIDEO && _video_stream == -1)
+                    {
+                        LOG_DEBUG(logger, "Found video, stream index = {}", i);
+                        _video_stream = i;
+                    }
+
+                    _streams.push_back(std::move(stream));
+                }
+                catch (const std::exception &e)
+                {
+                    LOG_DEBUG(logger, "Cannot construct stream, {}", e.what());
+                }
             }
 
             _packet = av_packet_alloc();
