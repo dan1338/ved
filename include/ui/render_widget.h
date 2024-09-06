@@ -21,6 +21,7 @@ namespace ui
         static constexpr int _win_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
         core::Workspace &_workspace;
+        core::RenderSettings _settings;
         bool _opened{false};
     };
 }

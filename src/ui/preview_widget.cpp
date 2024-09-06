@@ -109,92 +109,7 @@ namespace ui
 
     void PreviewWidget::show()
     {
-        // Check if we need to seek
-        if (_workspace.should_refresh_preview())
-        {
-            const auto cursor = _workspace.get_cursor();
-
-            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", _preview->seek_id + 1, cursor / 1.0s);
-
-            _preview->in_seek << PreviewWorker::SeekRequest{++_preview->seek_id, cursor};
-            _preview->last_frame = nullptr;
-        }
-
-        bool should_pull_frame = !_preview->last_frame;
-        core::timestamp frame_sync_time{0s};
-
-        if (_workspace.is_preview_active())
-        {
-            // If current frame has ended, ask for a new one
-            if (const auto *frame = _preview->last_frame)
-            {
-                if (!_preview->last_frame_display_time.has_value())
-                {
-                    LOG_WARNING(logger, "No display time, frame has not been displayed?");
-                }
-                else
-                {
-                    frame_sync_time =
-                        _preview->last_frame_display_time.value() + core::timestamp{frame->duration};
-
-                    const auto time_remaining = (frame_sync_time - now());
-
-                    if (time_remaining <= 0ms)
-                    {
-                        should_pull_frame = true;
-                        LOG_TRACE_L1(logger, "Frame expired, pts = {}", frame->pts);
-                    }
-                    else if (time_remaining <= 17ms) // ~60HZ
-                    {
-                        should_pull_frame = true;
-                        LOG_TRACE_L1(logger, "Frame expiring soon, pts = {}", frame->pts);
-                    }
-                }
-            }
-        }
-
-        // Try fetch a frame
-        if (should_pull_frame && !_preview->out_frames.empty())
-        {
-            PreviewWorker::PreviewFrame frame;
-
-            while (!_preview->out_frames.empty())
-            {
-                _preview->out_frames >> frame;
-
-                // Discard the frame if it has old seek id. Newer frames OTW
-                if (frame.first < _preview->seek_id)
-                {
-                    LOG_TRACE_L1(logger, "Frame fetched and discarded");
-                    av_frame_unref(frame.second);
-                }
-                else
-                {
-                    if (_preview->last_frame)
-                        av_frame_unref(_preview->last_frame);
-
-                    LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", frame.second->pts);
-                    _preview->last_frame = frame.second;
-                    _workspace.set_cursor(core::timestamp{_preview->last_frame->pts}, false);
-
-                    if (!_preview->last_frame_display_time.has_value())
-                    {
-                        LOG_WARNING(logger, "No display time, frame has not been displayed?");
-                    }
-                    else
-                    {
-                        _window._frame_sync_time = frame_sync_time;
-
-                        LOG_DEBUG(logger, "Expiring frame lifetime was ({} - {})",
-                                _preview->last_frame_display_time.value() / 1.0s, frame_sync_time / 1.0s);
-                    }
-
-                    _preview->last_frame_display_time.reset();
-
-                    break;
-                }
-            }
-        }
+        _preview->fetch_latest_frame();
 
         // Draw preview
         if (ImGui::Begin(_widget_name, 0, _win_flags))
@@ -348,6 +263,97 @@ namespace ui
         start();
     }
 
+    void LivePreviewWorker::fetch_latest_frame()
+    {
+        auto &workspace = core::app->get_workspace();
+
+        // Check if we need to seek
+        if (workspace.should_refresh_preview())
+        {
+            const auto cursor = workspace.get_cursor();
+
+            LOG_DEBUG(logger, "Submitting seek request, seek_id = {}, cursor = {}", seek_id + 1, cursor / 1.0s);
+
+            in_seek << PreviewWorker::SeekRequest{++seek_id, cursor};
+            last_frame = nullptr;
+        }
+
+        bool should_pull_frame = !last_frame;
+        core::timestamp frame_sync_time{0s};
+
+        if (workspace.is_preview_active())
+        {
+            // If current frame has ended, ask for a new one
+            if (const auto *frame = last_frame)
+            {
+                if (!last_frame_display_time.has_value())
+                {
+                    LOG_WARNING(logger, "No display time, frame has not been displayed?");
+                }
+                else
+                {
+                    frame_sync_time = last_frame_display_time.value() + core::timestamp{frame->duration};
+
+                    const auto time_remaining = (frame_sync_time - now());
+
+                    if (time_remaining <= 0ms)
+                    {
+                        should_pull_frame = true;
+                        LOG_TRACE_L1(logger, "Frame expired, pts = {}", frame->pts);
+                    }
+                    else if (time_remaining <= 17ms) // ~60HZ
+                    {
+                        should_pull_frame = true;
+                        LOG_TRACE_L1(logger, "Frame expiring soon, pts = {}", frame->pts);
+                    }
+                }
+            }
+        }
+
+        // Try fetch a frame
+        if (should_pull_frame && !out_frames.empty())
+        {
+            PreviewWorker::PreviewFrame frame;
+
+            while (!out_frames.empty())
+            {
+                out_frames >> frame;
+
+                // Discard the frame if it has old seek id. Newer frames OTW
+                if (frame.first < seek_id)
+                {
+                    LOG_TRACE_L1(logger, "Frame fetched and discarded");
+                    av_frame_unref(frame.second);
+                }
+                else
+                {
+                    if (last_frame)
+                        av_frame_unref(last_frame);
+
+                    LOG_TRACE_L1(logger, "Frame fetched and replaced as latest, pts = {}", frame.second->pts);
+                    last_frame = frame.second;
+                    workspace.set_cursor(core::timestamp{last_frame->pts}, false);
+
+                    if (!last_frame_display_time.has_value())
+                    {
+                        LOG_WARNING(logger, "No display time, frame has not been displayed?");
+                    }
+                    else
+                    {
+                        core::app->get_main_window().set_frame_sync_time(frame_sync_time);
+
+                        LOG_DEBUG(logger, "Expiring frame lifetime was ({} - {})",
+                                last_frame_display_time.value() / 1.0s, frame_sync_time / 1.0s);
+                    }
+
+                    last_frame_display_time.reset();
+
+                    break;
+                }
+            }
+        }
+    }
+
     void LivePreviewWorker::run()
     {
         auto logger = logging::get_logger("LivePreviewWorker");
@@ -409,6 +415,17 @@ namespace ui
         });
 
         start();
+    }
+
+    void RenderPreviewWorker::fetch_latest_frame()
+    {
+        if (!out_frames.empty())
+        {
+            PreviewFrame frame;
+            out_frames >> frame;
+
+            last_frame = frame.second;
+        }
     }
 
     void RenderPreviewWorker::run()

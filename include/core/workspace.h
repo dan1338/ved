@@ -116,6 +116,12 @@ namespace core
             _preview_active = false;
         }
 
+        void start_render_session(const RenderSettings &settings)
+        {
+            _render_session = std::make_unique<RenderSession>(_timeline, settings);
+            begin_render_event.notify(*_render_session);
+        }
+
         bool is_preview_active() const
         {
             return _preview_active;

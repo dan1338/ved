@@ -31,7 +31,13 @@ namespace ui
         };
 
         MainWindow(GLFWwindow *window, Style style);
+
         void run();
+
+        void set_frame_sync_time(core::timestamp frame_sync_time)
+        {
+            _frame_sync_time = frame_sync_time;
+        }
 
     private:
         GLFWwindow *_window;

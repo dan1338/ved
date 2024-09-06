@@ -45,6 +45,7 @@ namespace ui
         msd::channel<TrackEvent> in_track_events;
 
         void start();
+        virtual void fetch_latest_frame() = 0;
 
     protected:
         std::thread _thread;
@@ -56,6 +57,8 @@ namespace ui
     {
     public:
         LivePreviewWorker(core::Timeline &timeline, const core::WorkspaceProperties &props);
+
+        void fetch_latest_frame() override;
         
     private:
         core::VideoComposer _composer;
@@ -67,6 +70,8 @@ namespace ui
     {
     public:
         RenderPreviewWorker(core::RenderSession &render_session);
+
+        void fetch_latest_frame() override;
 
     private:
         core::RenderSession &_render_session;

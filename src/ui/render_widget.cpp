@@ -13,6 +13,14 @@ namespace ui
         Widget(window),
         _workspace(core::app->get_workspace())
     {
+        const auto &props = _workspace.get_props();
+
+        _settings.output_path = core::app->get_working_dir() / "out.mp4";
+        _settings.video.fps = props.frame_rate;
+        _settings.video.width = props.video_width;
+        _settings.video.height = props.video_height;
+        _settings.video.crf = 24;
+        _settings.video.bitrate = 4000;
     }
 
     void RenderWidget::show()
@@ -29,14 +37,17 @@ namespace ui
 
         if (ImGui::BeginPopupModal(_widget_name, 0, _win_flags))
         {
-            std::string output_path = "/home/dan/Downloads";
-
-            ImGui::InputText("Output path", &output_path);
+            ImGui::InputText("Output path", &_settings.output_path);
+            ImGui::InputInt("Crf", &_settings.video.crf);
+            ImGui::InputInt("Bitrate (kbps)", &_settings.video.bitrate);
 
             if (ImGui::Button("Start render"))
             {
                 _opened = false;
                 _window._show_render_widget = false;
+
+                _workspace.start_render_session(_settings);
+
                 ImGui::CloseCurrentPopup();
             }
         }
