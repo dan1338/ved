@@ -52,7 +52,7 @@ namespace ffmpeg
                     _video_stream->codecpar->format = AV_PIX_FMT_YUV420P;
                     _video_stream->codecpar->width = desc.width;
                     _video_stream->codecpar->height = desc.height;
-                    _video_stream->codecpar->bit_rate = 4000000;
+                    _video_stream->codecpar->bit_rate = desc.bitrate * 1000;
                     _video_stream->codecpar->framerate = AVRational{desc.fps, 1};
 
                     _video_stream->time_base = AVRational{1, 1000};
@@ -63,7 +63,9 @@ namespace ffmpeg
                     codec_ctx->time_base = AVRational{1, desc.fps};
                     codec_ctx->gop_size = 12; // Force I frame at least once per 12 frames
 
-                    if (av_opt_set(codec_ctx, "crf", "26", 0) != 0)
+                    const auto crf_string{std::to_string(desc.crf)};
+
+                    if (av_opt_set(codec_ctx, "crf", crf_string.c_str(), 0) != 0)
                     {
                         LOG_WARNING(logger, "Failed to set codec crf");
                     }
