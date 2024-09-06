@@ -17,6 +17,7 @@
 #include "ui/preview_widget.h"
 #include "ui/import_widget.h"
 #include "ui/workspace_properties_widget.h"
+#include "ui/render_widget.h"
 
 namespace ui
 {
@@ -30,7 +31,13 @@ namespace ui
         };
 
         MainWindow(GLFWwindow *window, Style style);
+
         void run();
+
+        void set_frame_sync_time(core::timestamp frame_sync_time)
+        {
+            _frame_sync_time = frame_sync_time;
+        }
 
     private:
         GLFWwindow *_window;
@@ -47,8 +54,10 @@ namespace ui
         ui::ImportWidget _import_widget;
         ui::PreviewWidget _preview_widget;
         ui::WorkspacePropertiesWidget _workspace_props_widget;
+        ui::RenderWidget _render_widget;
 
         bool _show_workspace_props{false};
+        bool _show_render_widget{false};
 
         void layout_windows();
 
@@ -56,5 +65,6 @@ namespace ui
         friend class ImportWidget;
         friend class PreviewWidget;
         friend class WorkspacePropertiesWidget;
+        friend class RenderWidget;
     };
 }

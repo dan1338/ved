@@ -14,6 +14,7 @@ include(cmake/FFMpeg.cmake)
 # TODO: figure out a way to ensure linkage with static ffmpeg libs only
 # this and the set(CMAKE_FIND_LIBRARY_SUFFIXES) seems to work for now
 set(CMAKE_PREFIX_PATH vendor/ffmpeg/ffmpeg-install)
+set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
 
 pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
     libavutil
@@ -52,10 +53,12 @@ add_executable(ved
     src/ffmpeg/io.cpp
     src/ffmpeg/frame_converter.cpp
     src/ffmpeg/media_source.cpp
+    src/ffmpeg/media_sink.cpp
     src/core/application.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
     src/core/video_composer.cpp
+    src/core/render_session.cpp
     src/core/sync_media_source.cpp
     src/ui/helpers.cpp
     src/ui/import_widget.cpp
@@ -63,6 +66,7 @@ add_executable(ved
     src/ui/main_window.cpp
     src/ui/preview_widget.cpp
     src/ui/workspace_properties_widget.cpp
+    src/ui/render_widget.cpp
 )
 
 add_library(imgui OBJECT
@@ -76,8 +80,6 @@ add_library(imgui OBJECT
     vendor/imgui/imgui.cpp
 )
 
-set(CMAKE_FIND_LIBRARY_SUFFIXES .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
-
 target_link_libraries(ved
     imgui
     fmt
@@ -86,7 +88,30 @@ target_link_libraries(ved
     charls
     dl
     pthread
-    PkgConfig::FFMPEG
+    #PkgConfig::FFMPEG
+
+    # Absolute paths to ffmpeg static libs
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libavformat.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libavcodec.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libavdevice.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libavfilter.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libavutil.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libpostproc.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libswresample.a
+    ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libswscale.a
+
+    # ffmpeg dependencies
+    X11
+    asound
+    atomic
+    bz2
+    drm
+    lzma
+    m
+    x264
+    xcb
+    z
+
     ${GLFW3_LIBRARIES}
     ${GL_LIBRARIES}
     ${GLEW_LIBRARIES}

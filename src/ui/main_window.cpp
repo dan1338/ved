@@ -40,7 +40,8 @@ namespace ui
         _timeline_widget(*this, _timeline_props),
         _import_widget(*this),
         _preview_widget(*this),
-        _workspace_props_widget(*this)
+        _workspace_props_widget(*this),
+        _render_widget(*this)
     {
         _imgui_ctx = ImGui::CreateContext();
         ImGui_ImplGlfw_InitForOpenGL(_window, true);
@@ -134,6 +135,11 @@ namespace ui
             if (_show_workspace_props)
             {
                 _workspace_props_widget.show();
+            }
+
+            if (_show_render_widget)
+            {
+                _render_widget.show();
             }
 
             ImGui::EndPopup();

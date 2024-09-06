@@ -60,6 +60,13 @@ namespace ui
                 _window._show_workspace_props = true;
             }
 
+            ImGui::SameLine();
+
+            if (ImGui::Button("Render"))
+            {
+                _window._show_render_widget = true;
+            }
+
             ImGui::SetNextItemWidth(100.0);
             ImGui::SameLine();
 
@@ -237,7 +244,7 @@ namespace ui
         const auto win_pos = ImGui::GetWindowPos();
         const auto win_size = ImGui::GetWindowSize();
 
-        LOG_DEBUG(logger, "parent_width {}, win_pos ({}, {}), win_size ({}, {})", parent_width, win_pos.x, win_pos.y, win_size.x, win_size.y);
+        LOG_TRACE_L3(logger, "parent_width {}, win_pos ({}, {}), win_size ({}, {})", parent_width, win_pos.x, win_pos.y, win_size.x, win_size.y);
 
         // Save dimensions for drawing the cursor
         _clip_window_x = win_pos.x;
