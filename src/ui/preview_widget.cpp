@@ -103,7 +103,10 @@ namespace ui
     {
         glDeleteBuffers(1, &_cb_user.vbo);
         glDeleteBuffers(1, &_cb_user.ebo);
-        glDeleteTextures(1, &_cb_user.texture);
+
+        // For some reason the invocation below causes SEGV
+        // glDeleteTextures(1, &_cb_user.texture);
+
         _preview->in_seek.close();
     }
 
