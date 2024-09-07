@@ -1,4 +1,6 @@
 #include "core/application.h"
+#include <cstdlib>
+#include <cstdio>
 
 namespace core
 {
@@ -47,13 +49,20 @@ namespace core
             throw std::runtime_error("No primary monitor found, glfwGetPrimaryMonitor -> null");
         }
 
-        int xmon, ymon, wmon, hmon;
-        glfwGetMonitorWorkarea(monitor, &xmon, &ymon, &wmon, &hmon);
+        if (const char *winsize = std::getenv("VED_WINSIZE"))
+        {
+            if (std::sscanf(winsize, "%ux%u", &width, &height) != 2)
+            {
+                throw std::exception();
+            }
+        }
+        else
+        {
+            int xmon, ymon;
+            glfwGetMonitorWorkarea(monitor, &xmon, &ymon, &width, &height);
 
-        LOG_DEBUG(logger, "glfwGetMonitorWorkarea, workarea = ({}, {}, {}, {})", xmon, ymon, wmon, hmon);
-
-        width = wmon;
-        height = hmon;
+            LOG_DEBUG(logger, "glfwGetMonitorWorkarea, workarea = ({}, {}, {}, {})", xmon, ymon, width, height);
+        }
 
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, opengl_ver[0]);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, opengl_ver[1]);
