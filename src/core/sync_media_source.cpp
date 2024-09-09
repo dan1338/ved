@@ -23,9 +23,11 @@ namespace core
             file_caches[_file.path] = {};
     }
 
-    AVFrame *SyncMediaSource::frame_at(core::timestamp ts)
+    AVFrame *SyncMediaSource::frame_at(core::timestamp req_ts)
     {
-        LOG_DEBUG(logger, "frame_at, ts = {}s", ts / 1.0s);
+        core::timestamp ts = req_ts;
+
+        LOG_DEBUG(logger, "frame_at, ts = {}s, lreq = {}s, lret = {}s", req_ts / 1.0s, _last_req_ts / 1.0s, _last_ret_ts / 1.0s);
 
         // Single image handling
         // Only the first frame contains the image, if we set ts to 0
@@ -40,15 +42,21 @@ namespace core
         if (ts <= _last_ret_ts && ts > _last_req_ts)
         {
             LOG_DEBUG(logger, "repeat last frame, ts = {}s", ts / 1.0s);
-            ts = _last_ret_ts;
+            ts = _last_req_ts;
         }
 
         auto &cache = file_caches.at(_file.path);
 
+        // Return frame from cache early if present
         if (auto it = cache.find(ts.count()); it != cache.end())
         {
-            LOG_DEBUG(logger, "returning cached frame");
-            return av_frame_clone(it->second);
+            const auto *frame = it->second;
+
+            LOG_DEBUG(logger, "return cached frame, ts = {}s", core::timestamp{frame->pts} / 1.0s);
+            _last_req_ts = req_ts;
+            _last_ret_ts = core::timestamp{frame->pts};
+
+            return av_frame_clone(frame);
         }
 
         // Because MediaSource only allows for fetching next_frame
@@ -60,6 +68,21 @@ namespace core
             _raw_source->seek(ts);
         }
 
+        const auto [frame, fetch_count] = skip_frames_until(ts);
+
+        LOG_DEBUG(logger, "return frame_at, fetch_count = {}, ts = {}", fetch_count, core::timestamp{frame->pts} / 1.0s);
+
+        _last_req_ts = req_ts;
+        _last_ret_ts = core::timestamp{frame->pts};
+
+        if (frame)
+            cache[ts.count()] = av_frame_clone(frame);
+
+        return frame;
+    }
+
+    std::pair<AVFrame*, int> SyncMediaSource::skip_frames_until(core::timestamp ts)
+    {
         AVFrame *frame{nullptr};
         core::timestamp frame_ts;
         size_t fetch_count = 0;
@@ -75,22 +98,14 @@ namespace core
 
             if (!frame) // Early EOF
             {
-                return nullptr;
+                return {nullptr, fetch_count};
             }
 
             frame_ts = core::timestamp(frame->pts);
         }
         while (frame_ts < ts);
 
-        LOG_DEBUG(logger, "frame_at return, fetch_count = {}, ts = {}s", fetch_count, frame_ts / 1.0s);
-
-        _last_req_ts = ts;
-        _last_ret_ts = frame_ts;
-
-        if (frame)
-            cache[ts.count()] = av_frame_clone(frame);
-
-        return frame;
+        return {frame, fetch_count};
     }
 }
 
