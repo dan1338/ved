@@ -112,14 +112,14 @@ namespace ui
 
     void PreviewWidget::show()
     {
-        _preview->fetch_latest_frame();
+        const auto frame_updated = _preview->fetch_latest_frame();
 
         // Draw preview
         if (ImGui::Begin(_widget_name, 0, _win_flags))
         {
             auto *draw_list = ImGui::GetWindowDrawList();
 
-            if (_preview->last_frame)
+            if (_preview->last_frame && frame_updated)
             {
                 auto *frame = _preview->last_frame;
                 _cb_user.img_size.x = frame->width;
@@ -266,7 +266,7 @@ namespace ui
         start();
     }
 
-    void LivePreviewWorker::fetch_latest_frame()
+    bool LivePreviewWorker::fetch_latest_frame()
     {
         auto &workspace = core::app->get_workspace();
 
@@ -351,10 +351,12 @@ namespace ui
 
                     last_frame_display_time.reset();
 
-                    break;
+                    return true;
                 }
             }
         }
+
+        return false;
     }
 
     void LivePreviewWorker::run()
@@ -420,7 +422,7 @@ namespace ui
         start();
     }
 
-    void RenderPreviewWorker::fetch_latest_frame()
+    bool RenderPreviewWorker::fetch_latest_frame()
     {
         if (!out_frames.empty())
         {
@@ -428,7 +430,11 @@ namespace ui
             out_frames >> frame;
 
             last_frame = frame.second;
+
+            return true;
         }
+
+        return false;
     }
 
     void RenderPreviewWorker::run()
