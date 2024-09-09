@@ -39,7 +39,7 @@ namespace ui
         {
             ImGui::InputText("Output path", &_settings.output_path);
             ImGui::InputInt("Crf", &_settings.video.crf);
-            ImGui::InputInt("Bitrate (kbps)", &_settings.video.bitrate);
+            ImGui::InputInt("Bitrate (kbps)", &_settings.video.bitrate, 100);
 
             if (ImGui::Button("Start render"))
             {
