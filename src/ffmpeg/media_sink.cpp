@@ -65,12 +65,12 @@ namespace ffmpeg
 
                     const auto crf_string{std::to_string(desc.crf)};
 
-                    if (av_opt_set(codec_ctx, "crf", crf_string.c_str(), 0) != 0)
+                    if (av_opt_set(codec_ctx->priv_data, "crf", crf_string.c_str(), 0) != 0)
                     {
                         LOG_WARNING(logger, "Failed to set codec crf");
                     }
 
-                    if (av_opt_set(codec_ctx, "preset", "normal", 0) != 0)
+                    if (av_opt_set(codec_ctx->priv_data, "preset", "fast", 0) != 0)
                     {
                         LOG_WARNING(logger, "Failed to set codec preset");
                     }
