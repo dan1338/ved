@@ -23,6 +23,8 @@ namespace ui
         core::Workspace &_workspace;
         core::RenderSettings _settings;
         bool _opened{false};
+
+        void close();
     };
 }
 

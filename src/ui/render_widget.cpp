@@ -43,16 +43,25 @@ namespace ui
 
             if (ImGui::Button("Start render"))
             {
-                _opened = false;
-                _window._show_render_widget = false;
-
                 _workspace.start_render_session(_settings);
+                close();
+            }
 
-                ImGui::CloseCurrentPopup();
+            if (ImGui::Button("Close"))
+            {
+                close();
             }
         }
 
         ImGui::End();
+    }
+
+    void RenderWidget::close()
+    {
+        _opened = false;
+        _window._show_render_widget = false;
+
+        ImGui::CloseCurrentPopup();
     }
 }
 

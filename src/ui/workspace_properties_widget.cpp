@@ -38,14 +38,24 @@ namespace ui
             if (ImGui::Button("Save"))
             {
                 workspace.set_props(_props);
+                close();
+            }
 
-                _opened = false;
-                _window._show_workspace_props = false;
-                ImGui::CloseCurrentPopup();
+            if (ImGui::Button("Close"))
+            {
+                close();
             }
         }
 
         ImGui::End();
+    }
+
+    void WorkspacePropertiesWidget::close()
+    {
+        _opened = false;
+        _window._show_workspace_props = false;
+
+        ImGui::CloseCurrentPopup();
     }
 }
 

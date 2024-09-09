@@ -23,6 +23,8 @@ namespace ui
 
         core::WorkspaceProperties _props;
         bool _opened{false};
+
+        void close();
     };
 }
 
