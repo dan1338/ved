@@ -8,8 +8,17 @@ namespace core
 {
     static auto logger = logging::get_logger("RenderSession");
 
+    static WorkspaceProperties props_from_render_settings(const RenderSettings &settings)
+    {
+        return {
+            settings.video.width,
+            settings.video.height,
+            settings.video.fps,
+        };
+    }
+
     RenderSession::RenderSession(core::Timeline &timeline, RenderSettings settings):
-        _composer(timeline, core::app->get_workspace().get_props())
+        _composer(timeline, props_from_render_settings(settings))
     {
         ffmpeg::SinkOptions::VideoStream video_desc{
             AV_CODEC_ID_H264,
