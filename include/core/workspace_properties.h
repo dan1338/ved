@@ -1,18 +1,17 @@
 #pragma once
 
 #include "core/time.h"
+#include "core/video_properties.h"
 
 namespace core
 {
     struct WorkspaceProperties
     {
-        int video_width;
-        int video_height;
-        int frame_rate;
+        VideoProperties video;
 
         core::timestamp frame_dt() const
         {
-            return core::timestamp{core::timestamp(1s).count() / frame_rate};
+            return core::timestamp{core::timestamp(1s).count() / video.fps};
         }
     };
 }

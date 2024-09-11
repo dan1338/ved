@@ -10,16 +10,20 @@ namespace ffmpeg
 {
     static auto logger = logging::get_logger("MediaSink");
 
-    const AVCodec *find_best_encoder(const enum AVCodecID codec_id)
+    const AVCodec *find_best_encoder(const codec::Codec *codec)
     {
-        const AVCodec *codec = avcodec_find_encoder(codec_id);
+        const AVCodec *ret{nullptr};
 
-        if (codec_id == AV_CODEC_ID_H264)
+        if (codec->load_name)
         {
-            codec = avcodec_find_encoder_by_name("libx264");
+            ret = avcodec_find_encoder_by_name(codec->load_name->c_str());
+        }
+        else
+        {
+            ret = avcodec_find_encoder(codec->id);
         }
 
-        return codec;
+        return ret;
     }
 
     class MediaSink : public core::MediaSink
@@ -44,11 +48,11 @@ namespace ffmpeg
             {
                 const auto &desc = *opt.video_desc;
 
-                if (const auto *video_codec = find_best_encoder(desc.codec_id))
+                if (const auto *video_codec = find_best_encoder(desc.codec))
                 {
                     _video_stream = avformat_new_stream(_format_ctx, nullptr);
                     _video_stream->codecpar->codec_type = AVMEDIA_TYPE_VIDEO;
-                    _video_stream->codecpar->codec_id = desc.codec_id;
+                    _video_stream->codecpar->codec_id = desc.codec->id;
                     _video_stream->codecpar->format = AV_PIX_FMT_YUV420P;
                     _video_stream->codecpar->width = desc.width;
                     _video_stream->codecpar->height = desc.height;
@@ -89,11 +93,11 @@ namespace ffmpeg
             {
                 const auto &desc = *opt.audio_desc;
 
-                if (const auto *audio_codec = find_best_encoder(desc.codec_id))
+                if (const auto *audio_codec = find_best_encoder(desc.codec))
                 {
                     _audio_stream = avformat_new_stream(_format_ctx, nullptr);
                     _audio_stream->codecpar->codec_type = AVMEDIA_TYPE_AUDIO;
-                    _audio_stream->codecpar->codec_id = desc.codec_id;
+                    _audio_stream->codecpar->codec_id = desc.codec->id;
                     _audio_stream->codecpar->format = AV_SAMPLE_FMT_FLTP;
                     _audio_stream->codecpar->bit_rate = 320000;
                     _audio_stream->codecpar->sample_rate = desc.sample_rate;

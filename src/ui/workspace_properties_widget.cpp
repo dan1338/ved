@@ -31,9 +31,9 @@ namespace ui
 
         if (ImGui::BeginPopupModal(_widget_name, 0, _win_flags))
         {
-            ImGui::InputInt("Video width", &_props.video_width);
-            ImGui::InputInt("Video height", &_props.video_height);
-            ImGui::InputInt("Frame rate", &_props.frame_rate);
+            ImGui::InputInt("Video width", &_props.video.width);
+            ImGui::InputInt("Video height", &_props.video.height);
+            ImGui::InputInt("Frame rate", &_props.video.fps);
 
             if (ImGui::Button("Save"))
             {

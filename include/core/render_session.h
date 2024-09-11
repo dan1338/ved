@@ -3,6 +3,9 @@
 #include "core/event.h"
 #include "core/media_sink.h"
 #include "core/video_composer.h"
+#include "codec/codec.h"
+#include "core/video_properties.h"
+#include "ffmpeg/media_sink.h"
 #include <thread>
 
 namespace core
@@ -11,13 +14,8 @@ namespace core
     {
         std::string output_path;
 
-        struct {
-            int fps;
-            int width;
-            int height;
-            int crf;
-            int bitrate;
-        } video;
+        ffmpeg::SinkOptions::VideoStream video;
+        ffmpeg::SinkOptions::AudioStream audio;
     };
 
     class RenderSession

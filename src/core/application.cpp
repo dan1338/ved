@@ -18,6 +18,8 @@ namespace core
     Application::Application(fs::path working_dir):
         _working_dir(working_dir.empty()? fs::path{getcwd_string()} : std::move(working_dir))
     {
+        _codecs.push_back(&codec::avc);
+
         init_opengl();
     }
 

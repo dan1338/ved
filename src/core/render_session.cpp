@@ -20,20 +20,11 @@ namespace core
     RenderSession::RenderSession(core::Timeline &timeline, RenderSettings settings):
         _composer(timeline, props_from_render_settings(settings))
     {
-        ffmpeg::SinkOptions::VideoStream video_desc{
-            AV_CODEC_ID_H264,
-            settings.video.fps,
-            settings.video.width,
-            settings.video.height,
-            settings.video.bitrate,
-            settings.video.crf
-        };
-
-        _sink = ffmpeg::open_media_sink(settings.output_path, {video_desc, {}});
+        _sink = ffmpeg::open_media_sink(settings.output_path, {settings.video, {}});
 
         if (_sink == nullptr)
         {
-            LOG_ERROR(logger, "Failed to open media sink, path = {}, video_codec = {}", settings.output_path, avcodec_get_name(video_desc.codec_id));
+            LOG_ERROR(logger, "Failed to open media sink, path = {}, video_codec = {}", settings.output_path, avcodec_get_name(settings.video.codec->id));
             throw std::exception();
         }
 

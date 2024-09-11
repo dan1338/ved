@@ -130,8 +130,8 @@ namespace core
         out_frame->pts = ts.count();
         out_frame->duration = _frame_dt.count();
 
-        out_frame->width = _props.video_width;
-        out_frame->height = _props.video_height;
+        out_frame->width = _props.video.width;
+        out_frame->height = _props.video.height;
         out_frame->format = AVPixelFormat::AV_PIX_FMT_RGB24;
 
         if (av_frame_get_buffer(out_frame, 0) != 0)

@@ -5,6 +5,7 @@
 
 #include "ui/main_window.h"
 #include "core/event.h"
+#include "codec/codec.h"
 
 namespace core
 {
@@ -29,9 +30,14 @@ namespace core
             return *_workspace;
         }
 
-        fs::path get_working_dir()
+        fs::path get_working_dir() const
         {
             return _working_dir;
+        }
+
+        const std::vector<codec::Codec*> &get_available_codecs() const
+        {
+            return _codecs;
         }
 
     private:
@@ -41,6 +47,7 @@ namespace core
 
         std::unique_ptr<ui::MainWindow> _main_window;
         std::unique_ptr<core::Workspace> _workspace;
+        std::vector<codec::Codec*> _codecs;
 
         void init_opengl();
         void create_main_window();
