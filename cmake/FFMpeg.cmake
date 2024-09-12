@@ -3,7 +3,7 @@ include(ProcessorCount)
 set(FFMPEG_DIR ${CMAKE_CURRENT_SOURCE_DIR}/vendor/ffmpeg)
 
 execute_process(
-    COMMAND ./configure --prefix=${FFMPEG_DIR}/ffmpeg-install --enable-libx264 --enable-gpl
+    COMMAND ./configure --prefix=${FFMPEG_DIR}/ffmpeg-install --enable-libx264 --enable-libvpx --enable-gpl
     WORKING_DIRECTORY ${FFMPEG_DIR}
 )
 

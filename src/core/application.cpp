@@ -19,6 +19,8 @@ namespace core
         _working_dir(working_dir.empty()? fs::path{getcwd_string()} : std::move(working_dir))
     {
         _codecs.push_back(&codec::avc);
+        _codecs.push_back(&codec::vp8);
+        _codecs.push_back(&codec::vp9);
 
         init_opengl();
     }

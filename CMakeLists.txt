@@ -55,6 +55,8 @@ add_executable(ved
     src/ffmpeg/media_source.cpp
     src/ffmpeg/media_sink.cpp
     src/codec/avc.cpp
+    src/codec/vp8.cpp
+    src/codec/vp9.cpp
     src/core/application.cpp
     src/core/workspace.cpp
     src/core/timeline.cpp
@@ -110,6 +112,7 @@ target_link_libraries(ved
     lzma
     m
     x264
+    vpx
     xcb
     z
 

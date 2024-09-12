@@ -30,5 +30,7 @@ namespace codec
     };
 
     extern Codec avc;
+    extern Codec vp8;
+    extern Codec vp9;
 }
 
