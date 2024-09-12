@@ -74,9 +74,12 @@ namespace ffmpeg
                         LOG_WARNING(logger, "Failed to set codec crf");
                     }
 
-                    if (av_opt_set(codec_ctx->priv_data, "preset", "fast", 0) != 0)
+                    for (const auto &[name, value] : desc.codec_params)
                     {
-                        LOG_WARNING(logger, "Failed to set codec preset");
+                        if (av_opt_set(codec_ctx->priv_data, name.c_str(), value.c_str(), 0) != 0)
+                        {
+                            LOG_WARNING(logger, "Failed to set codec param, name = {}", name);
+                        }
                     }
 
                     if (avcodec_open2(codec_ctx, video_codec, nullptr) != 0)
