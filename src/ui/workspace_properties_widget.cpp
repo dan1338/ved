@@ -35,13 +35,18 @@ namespace ui
             ImGui::InputInt("Video height", &_props.video.height);
             ImGui::InputInt("Frame rate", &_props.video.fps);
 
-            if (ImGui::Button("Save"))
+            ImGui::Separator();
+            ImGui::Columns(2);
+
+            if (ImGui::Button("Save", {-1, 0}))
             {
                 workspace.set_props(_props);
                 close();
             }
 
-            if (ImGui::Button("Close"))
+            ImGui::NextColumn();
+
+            if (ImGui::Button("Close", {-1, 0}))
             {
                 close();
             }

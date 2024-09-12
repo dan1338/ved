@@ -101,25 +101,30 @@ namespace ui
                     {
                         params[name] = *value;
 
-                        ImGui::SameLine();
+                        const std::string label{fmt::format("X##{}", name)};
+                        constexpr auto btn_width = 30;
+                        ImGui::SameLine(ImGui::GetWindowWidth() - btn_width - 10);
 
-                        if (ImGui::Button("X", {30, 0}))
+                        if (ImGui::Button(label.c_str(), {btn_width, 0}))
                         {
                             params.erase(name);
                         }
                     }
                 }
-
-                ImGui::Separator();
             }
 
-            if (ImGui::Button("Start render"))
+            ImGui::Separator();
+            ImGui::Columns(2);
+
+            if (ImGui::Button("Start render", {-1, 0}))
             {
                 _workspace.start_render_session(_settings);
                 close();
             }
 
-            if (ImGui::Button("Close"))
+            ImGui::NextColumn();
+
+            if (ImGui::Button("Close", {-1, 0}))
             {
                 close();
             }
