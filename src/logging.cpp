@@ -1,4 +1,6 @@
 #include "logging.h"
+
+#include "ui/helpers.h"
 #include <cstdlib>
 #include <string>
 #include <vector>

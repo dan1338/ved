@@ -10,8 +10,6 @@
 #include "quill/UserClockSource.h"
 #include "quill/sinks/ConsoleSink.h"
 
-#include "ui/helpers.h"
-
 namespace logging
 {
     using Logger = quill::Frontend::logger_t;

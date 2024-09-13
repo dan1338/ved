@@ -97,27 +97,6 @@ namespace ui
                 break;
             }
 
-            if (ImGui::IsKeyPressed(ImGuiKey_Space, false)) {
-                LOG_DEBUG(logger, "Space pressed");
-
-                if (workspace.is_preview_active())
-                    workspace.stop_preview();
-                else
-                    workspace.start_preview();
-            }
-
-            if (ImGui::IsKeyPressed(ImGuiKey_LeftArrow)) {
-                LOG_DEBUG(logger, "Left pressed");
-
-                workspace.decrement_cursor();
-            }
-
-            if (ImGui::IsKeyPressed(ImGuiKey_RightArrow)) {
-                LOG_DEBUG(logger, "Right pressed");
-
-                workspace.increment_cursor();
-            }
-
             LOG_TRACE_L3(logger, "Begin ui frame");
 
             ImGui_ImplOpenGL3_NewFrame();

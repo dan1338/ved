@@ -1,6 +1,7 @@
 #include "ui/timeline_widget.h"
 
 #include "ui/main_window.h"
+#include "ui/helpers.h"
 #include "core/application.h"
 
 #include "fmt/format.h"
@@ -325,16 +326,21 @@ namespace ui
             }
         }
 
-        // Split clip
-        if (ImGui::IsKeyPressed(ImGuiKey_S, false))
+        if (ImGui::IsWindowFocused(ImGuiFocusedFlags_RootAndChildWindows))
         {
-            const auto position = _workspace.get_cursor();
-            const auto clip_id = track.clip_at(position);
+            handle_playback_control(logger);
 
-            if (clip_id.has_value())
+            // Split clip
+            if (ImGui::IsKeyPressed(ImGuiKey_S, false))
             {
-                auto &clip = track.clips[*clip_id];
-                track.split_clip(clip, position);
+                const auto position = _workspace.get_cursor();
+                const auto clip_id = track.clip_at(position);
+
+                if (clip_id.has_value())
+                {
+                    auto &clip = track.clips[*clip_id];
+                    track.split_clip(clip, position);
+                }
             }
         }
 
