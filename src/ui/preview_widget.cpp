@@ -431,12 +431,15 @@ namespace ui
 
     bool RenderPreviewWorker::fetch_latest_frame()
     {
+        auto &workspace = core::app->get_workspace();
+
         if (!out_frames.empty())
         {
             PreviewFrame frame;
             out_frames >> frame;
 
             last_frame = frame.second;
+            workspace.set_cursor(core::timestamp{last_frame->pts}, false);
 
             return true;
         }
