@@ -83,25 +83,29 @@ namespace core
         LOG_DEBUG(logger, "update track, num_clips = {}", track.clips.size());
 
         if (_tracks.find(track.id) != _tracks.end())
-            _tracks.erase(track.id);
+            rm_track(track.id);
 
         add_track(track);
 
-        std::vector<core::Timeline::ClipID> old_clips;
+        std::vector<core::Timeline::ClipID> unused_clips;
 
         // Find clips which are no longer referenced
-        for (auto &[clip_id, source] : _sources)
+        for (const auto &source : _sources)
         {
-            if (track.clips.find(clip_id) == track.clips.end())
-                old_clips.push_back(clip_id);
+            const auto track_has_clip = [&](auto &it){
+                const auto &track = it.second;
+                return track.clips.find(source.first) != track.clips.end();
+            };
+
+            if (std::none_of(_tracks.begin(), _tracks.end(), track_has_clip))
+                unused_clips.push_back(source.first);
         }
 
         // Remove the sources used for fetching those clips
-        for (const auto clip_id : old_clips)
+        for (const auto clip_id : unused_clips)
         {
             LOG_DEBUG(logger, "Removing unused clip source, clip_id = {}", clip_id);
-
-            _sources.erase(clip_id);
+            rm_clip(clip_id);
         }
 
         // Add sources to newly referenced clips
@@ -224,10 +228,29 @@ namespace core
 
     void VideoComposer::add_track(Timeline::Track &track)
     {
+        LOG_TRACE_L1(logger, "add track, id = {}", track.id);
+
         _tracks.emplace(track.id, track);
 
         if (_frame_converters.find(track.id) == _frame_converters.end())
             _frame_converters.emplace(track.id, ffmpeg::FrameConverter(AVPixelFormat::AV_PIX_FMT_RGB24));
+    }
+
+    void VideoComposer::rm_track(Timeline::TrackID track_id)
+    {
+        LOG_TRACE_L1(logger, "rm track, id = {}", track_id);
+
+        _tracks.erase(track_id);
+
+        if (_frame_converters.find(track_id) != _frame_converters.end())
+            _frame_converters.erase(track_id);
+    }
+
+    void VideoComposer::rm_clip(Timeline::ClipID clip_id)
+    {
+        LOG_TRACE_L1(logger, "rm clip, id = {}", clip_id);
+
+        _sources.erase(clip_id);
     }
 }
 

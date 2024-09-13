@@ -35,6 +35,8 @@ namespace core
     private:
         void add_clip(Timeline::Clip &clip);
         void add_track(Timeline::Track &track);
+        void rm_track(Timeline::TrackID track_id);
+        void rm_clip(Timeline::ClipID clip_id);
 
         core::WorkspaceProperties _props;
         core::timestamp _frame_dt;
