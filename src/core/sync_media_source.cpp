@@ -61,7 +61,7 @@ namespace core
 
         // Because MediaSource only allows for fetching next_frame
         // we might want to create a new one a seek closer to desired timestamp
-        if (ts <= _last_req_ts || ts > _last_req_ts + seek_ahead_threshold)
+        if (ts <= _last_fetch_ts || ts > _last_fetch_ts + seek_ahead_threshold)
         {
             LOG_DEBUG(logger, "reconstruct and seek");
             _raw_source = ffmpeg::open_media_source(_file);
@@ -73,7 +73,7 @@ namespace core
         LOG_DEBUG(logger, "return frame_at, fetch_count = {}, ts = {}", fetch_count, core::timestamp{frame->pts} / 1.0s);
 
         _last_req_ts = req_ts;
-        _last_ret_ts = core::timestamp{frame->pts};
+        _last_fetch_ts = _last_ret_ts = core::timestamp{frame->pts};
 
         if (frame)
             cache[ts.count()] = av_frame_clone(frame);

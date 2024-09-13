@@ -20,6 +20,7 @@ namespace core
         std::unique_ptr<core::MediaSource> _raw_source;
         core::timestamp _last_req_ts{0s};
         core::timestamp _last_ret_ts{0s};
+        core::timestamp _last_fetch_ts{0s};
 
         std::pair<AVFrame*, int> skip_frames_until(core::timestamp ts);
     };
