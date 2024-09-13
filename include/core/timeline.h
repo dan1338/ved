@@ -89,6 +89,7 @@ namespace core
             std::optional<ClipID> clip_at(core::timestamp position);
 
             Clip &add_clip(core::MediaFile file, core::timestamp position = 0s);
+            void rm_clip(ClipID id);
             void move_clip(Clip &clip, core::timestamp new_position);
             void split_clip(Clip &clip, core::timestamp split_position);
 
@@ -151,6 +152,7 @@ namespace core
         }
 
         Event<Clip&> clip_added_event;
+        Event<Clip&> clip_removed_event;
         Event<Clip&> clip_moved_event;
         Event<Clip&> clip_resized_event;
         Event<Clip&> clip_transformed_event;

@@ -266,6 +266,9 @@ namespace ui
 
                 DraggingInitState init_state{&clip, clip.position, clip.duration};
 
+                if (clicked)
+                    _workspace.set_active_clip(clip.id);
+
                 if (track_x - px_start < dist_thresh)
                 {
                     ImGui::SetMouseCursor(ImGuiMouseCursor_ResizeEW);
@@ -342,12 +345,19 @@ namespace ui
                     track.split_clip(clip, position);
                 }
             }
-        }
 
-        // Hover highlight
-        if (ImGui::IsWindowHovered(ImGuiHoveredFlags_ChildWindows))
-        {
-            //color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
+            // Delete clip
+            if (ImGui::IsKeyPressed(ImGuiKey_Delete, false) || ImGui::IsKeyPressed(ImGuiKey_X, false))
+            {
+                if (const auto clip_id = _workspace.get_active_clip_id())
+                {
+                    if (track.clips.find(*clip_id) != track.clips.end())
+                    {
+                        track.rm_clip(*clip_id);
+                        _workspace.set_active_clip({});
+                    }
+                }
+            }
         }
 
         // Draw clips
@@ -357,18 +367,20 @@ namespace ui
         const float w = win_size.x;
         const float h = _props.track_height;
 
-        int bg_color = ImGui::GetColorU32({0.3, 0.3, 0.3, 1.0});
-        int clip_color = ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
-
-        // Track background
-        if (is_focused) {
-            bg_color = ImGui::GetColorU32({0.45, 0.45, 0.45, 1.0});
-        }
+        const int bg_color = is_focused
+            ? ImGui::GetColorU32({0.45, 0.45, 0.45, 1.0})
+            : ImGui::GetColorU32({0.3, 0.3, 0.3, 1.0});
 
         draw_list->AddQuadFilled({x, y}, {x + w, y}, {x + w, y + h}, {x, y + h}, bg_color);
 
+        const auto active_clip_id = _workspace.get_active_clip_id();
+
         for (const auto &[clip_id, clip] : track.clips)
         {
+            const int clip_color = (!active_clip_id.has_value() || *active_clip_id != clip_id)
+                ? ImGui::GetColorU32({0.4, 0.2, 0.25, 1.0})
+                : ImGui::GetColorU32({0.8, 0.4, 0.5, 1.0});
+
             const float clip_x = win_pos.x + timestamp_to_winpos(clip.position - _props.time_offset, parent_width);
             const float clip_w = timestamp_to_winpos(clip.duration, parent_width);
 

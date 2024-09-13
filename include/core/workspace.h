@@ -102,6 +102,16 @@ namespace core
             _active_track_id = id;
         }
 
+        std::optional<Timeline::ClipID> get_active_clip_id() const
+        {
+            return _active_clip_id;
+        }
+
+        void set_active_clip(std::optional<Timeline::ClipID> id)
+        {
+            _active_clip_id = std::move(id);
+        }
+
         void start_preview()
         {
             LOG_INFO(_logger, "Start preview");
@@ -140,6 +150,7 @@ namespace core
 
         Timeline _timeline;
         Timeline::TrackID _active_track_id{};
+        std::optional<Timeline::ClipID> _active_clip_id{};
 
         bool _force_preview_refresh{false};
         bool _preview_active{false};

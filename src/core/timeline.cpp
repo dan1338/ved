@@ -46,6 +46,13 @@ namespace core
         return it->second;
     }
 
+    void Timeline::Track::rm_clip(ClipID id)
+    {
+        auto clip = clips[id];
+        clips.erase(id);
+        timeline->clip_removed_event.notify(clip);
+    }
+
     void Timeline::Track::move_clip(Clip &clip, core::timestamp new_position)
     {
         clip.position = core::align_timestamp(new_position, timeline->_props.frame_dt());
@@ -97,6 +104,10 @@ namespace core
     {
         // Setup aggregate event notifications
         clip_added_event.add_callback([this](auto &clip){
+            track_modified_event.notify(clip.track_id);
+        });
+
+        clip_removed_event.add_callback([this](auto &clip){
             track_modified_event.notify(clip.track_id);
         });
 

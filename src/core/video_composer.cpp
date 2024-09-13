@@ -80,11 +80,31 @@ namespace core
 
     void VideoComposer::update_track(core::Timeline::Track &track)
     {
+        LOG_DEBUG(logger, "update track, num_clips = {}", track.clips.size());
+
         if (_tracks.find(track.id) != _tracks.end())
             _tracks.erase(track.id);
 
         add_track(track);
 
+        std::vector<core::Timeline::ClipID> old_clips;
+
+        // Find clips which are no longer referenced
+        for (auto &[clip_id, source] : _sources)
+        {
+            if (track.clips.find(clip_id) == track.clips.end())
+                old_clips.push_back(clip_id);
+        }
+
+        // Remove the sources used for fetching those clips
+        for (const auto clip_id : old_clips)
+        {
+            LOG_DEBUG(logger, "Removing unused clip source, clip_id = {}", clip_id);
+
+            _sources.erase(clip_id);
+        }
+
+        // Add sources to newly referenced clips
         for (auto &[clip_id, clip] : track.clips)
         {
             if (_sources.find(clip.id) == _sources.end())
