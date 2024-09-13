@@ -29,7 +29,7 @@ namespace ui
         Widget(window),
         _workspace(core::app->get_workspace())
     {
-        _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), _workspace.get_props());
+        init_live_preview();
 
         _cb_user.shader = create_shader(basic_vertex_src, image_fragment_src);
         glGenBuffers(1, &_cb_user.vbo);
@@ -90,11 +90,6 @@ namespace ui
             _preview = std::make_unique<RenderPreviewWorker>(session);
         });
 
-        // Reload worker on stop render
-        _workspace.stop_render_event.add_callback([this](){
-            _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), _workspace.get_props());
-        });
-
         // Initialize preview worker
         _preview->in_seek << PreviewWorker::SeekRequest{++_preview->seek_id, 0s};
     }
@@ -112,6 +107,13 @@ namespace ui
 
     void PreviewWidget::show()
     {
+        // After having stopped RenderPreview this will be closed
+        // we need to reinitialize the LivePreview
+        if (_preview->out_frames.closed())
+        {
+            init_live_preview();
+        }
+
         const auto frame_updated = _preview->fetch_latest_frame();
 
         // Draw preview
@@ -233,6 +235,11 @@ namespace ui
         }
 
         ImGui::End();
+    }
+
+    void PreviewWidget::init_live_preview()
+    {
+        _preview = std::make_unique<LivePreviewWorker>(_workspace.get_timeline(), _workspace.get_props());
     }
 
     PreviewWorker::PreviewWorker() {}
@@ -408,14 +415,14 @@ namespace ui
         LOG_INFO(logger, "Stopping thread");
     };
 
-    RenderPreviewWorker::RenderPreviewWorker(core::RenderSession &render_session):
+    RenderPreviewWorker::RenderPreviewWorker(std::unique_ptr<core::RenderSession> &render_session):
         _render_session(render_session)
     {
-        _render_session.frame_ready_event.add_callback([this](auto *frame){
+        _render_session->frame_ready_event.add_callback([this](auto *frame){
             _ready_frames << frame;
         });
 
-        _render_session.finished_event.add_callback([this](){
+        _render_session->finished_event.add_callback([this](){
             _ready_frames << (AVFrame*)nullptr;
         });
 
@@ -442,9 +449,15 @@ namespace ui
         for (auto *frame : _ready_frames)
         {
             if (frame == nullptr)
+            {
+                // This destroys the RenderSession and joins the thread
+                _render_session.reset();
                 break;
+            }
 
             out_frames << PreviewFrame{0, frame};
         }
+
+        out_frames.close();
     }
 }

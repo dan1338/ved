@@ -119,7 +119,7 @@ namespace core
         void start_render_session(const RenderSettings &settings)
         {
             _render_session = std::make_unique<RenderSession>(_timeline, settings);
-            begin_render_event.notify(*_render_session);
+            begin_render_event.notify(_render_session);
         }
 
         bool is_preview_active() const
@@ -131,8 +131,7 @@ namespace core
         void add_clip(core::MediaFile media_file);
 
         Event<WorkspaceProperties&> properties_changed_event;
-        Event<RenderSession&> begin_render_event;
-        Event<> stop_render_event;
+        Event<std::unique_ptr<RenderSession>&> begin_render_event;
 
     private:
         logging::Logger *_logger;

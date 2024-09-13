@@ -22,6 +22,7 @@ namespace core
     {
     public:
         RenderSession(core::Timeline &timeline, RenderSettings settings);
+        ~RenderSession();
         
         core::Event<AVFrame*> frame_ready_event;
         core::Event<> finished_event;

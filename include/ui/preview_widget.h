@@ -69,12 +69,12 @@ namespace ui
     class RenderPreviewWorker : public PreviewWorker
     {
     public:
-        RenderPreviewWorker(core::RenderSession &render_session);
+        RenderPreviewWorker(std::unique_ptr<core::RenderSession> &render_session);
 
         bool fetch_latest_frame() override;
 
     private:
-        core::RenderSession &_render_session;
+        std::unique_ptr<core::RenderSession> &_render_session;
         msd::channel<AVFrame*> _ready_frames;
 
         void run() override;
@@ -92,11 +92,6 @@ namespace ui
         static constexpr auto *_widget_name = ui::widget_ids::preview;
         static constexpr int _win_flags = ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoResize;
 
-        core::Workspace &_workspace;
-        bool _dragging{false};
-        
-        std::unique_ptr<PreviewWorker> _preview;
-
         struct CbUserData
         {
             GLuint vbo, ebo;
@@ -112,7 +107,13 @@ namespace ui
             GLuint uniform_image_size;
         };
 
+        core::Workspace &_workspace;
+        bool _dragging{false};
         CbUserData _cb_user;
+
+        std::unique_ptr<PreviewWorker> _preview;
+
+        void init_live_preview();
     };
 }
 

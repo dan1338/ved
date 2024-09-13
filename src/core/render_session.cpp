@@ -49,8 +49,13 @@ namespace core
                 _sink->write_frame(AVMEDIA_TYPE_VIDEO, frame);
             }
 
-            _sink.reset();
             finished_event.notify();
         }};
+    }
+
+    RenderSession::~RenderSession()
+    {
+        _sink.reset();
+        _thread.join();
     }
 }
