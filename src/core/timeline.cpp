@@ -29,7 +29,7 @@ namespace core
         return {};
     }
 
-    Timeline::Clip &Timeline::Track::add_clip(core::MediaFile file, core::timestamp position)
+    Timeline::Clip &Timeline::Track::add_clip(core::MediaFile file, core::timestamp position, ClipTransform origin_transform)
     {
         Clip clip{timeline->_clip_id_counter++, id, position, 0s, file.duration, file};
 
@@ -38,7 +38,7 @@ namespace core
             clip.duration = 1s;
         }
 
-        clip.transforms.emplace(ClipTransform{});
+        clip.transforms.emplace(std::move(origin_transform));
 
         const auto [it, _] = clips.emplace(clip.id, clip);
         timeline->clip_added_event.notify(clip);
@@ -64,7 +64,12 @@ namespace core
         const auto lhs_duration = split_position - clip.position;
         const auto rhs_duration = clip.duration - lhs_duration;
 
-        auto &new_clip = add_clip(clip.file, split_position);
+        // assert(!clip.transforms.empty()); // should be impossible
+
+        // https://en.cppreference.com/w/cpp/container
+        // The clip reference will be always valid as long
+        // as it stays an ordered associative container
+        auto &new_clip = add_clip(clip.file, split_position, clip.transforms.rbegin()->as_origin_transform());
         new_clip.duration = rhs_duration;
         new_clip.start_time = clip.start_time + lhs_duration;
 

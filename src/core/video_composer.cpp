@@ -60,6 +60,8 @@ namespace core
         _props(std::move(props)),
         _frame_dt(_props.frame_dt())
     {
+        LOG_INFO(logger, "Creating VideoComposer, resolution = {}x{}, fps = {}", _props.video.width, _props.video.height, _props.video.fps);
+
         seek(0s);
 
         timeline.foreach_track([this](Timeline::Track &track) {
@@ -189,10 +191,10 @@ namespace core
             // TODO: Implement transform interpolation with various functions
             const auto [xform1, xform2] = find_current_clip_transforms(clip, ts);
 
-            const auto target_x = (int)(out_frame->width * xform1.translate_x);
-            const auto target_y = (int)(out_frame->height * xform1.translate_y);
-            const auto target_width = (int)(out_frame->width * xform1.scale_x);
-            const auto target_height = (int)(out_frame->height * xform1.scale_y);
+            const auto target_x = (int)(clip_frame->width * xform1.translate_x);
+            const auto target_y = (int)(clip_frame->height * xform1.translate_y);
+            const auto target_width = (int)(clip_frame->width * xform1.scale_x);
+            const auto target_height = (int)(clip_frame->height * xform1.scale_y);
 
             auto &frame_converter = _frame_converters.at(track.id);
 
