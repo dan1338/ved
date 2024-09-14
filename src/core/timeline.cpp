@@ -29,7 +29,7 @@ namespace core
         return {};
     }
 
-    Timeline::Clip &Timeline::Track::add_clip(core::MediaFile file, core::timestamp position, ClipTransform origin_transform)
+    Timeline::Clip &Timeline::Track::add_clip(core::MediaFile file, core::timestamp position, std::optional<ClipTransform> origin_transform)
     {
         Clip clip{timeline->_clip_id_counter++, id, position, 0s, file.duration, file};
 
@@ -38,7 +38,17 @@ namespace core
             clip.duration = 1s;
         }
 
-        clip.transforms.emplace(std::move(origin_transform));
+        if (origin_transform)
+        {
+            clip.transforms.emplace(*origin_transform);
+        }
+        else
+        {
+            ClipTransform xform{};
+            // TODO: set scale based on _props and clip res, which we don't have :(
+
+            clip.transforms.emplace(xform);
+        }
 
         const auto [it, _] = clips.emplace(clip.id, clip);
         timeline->clip_added_event.notify(clip);

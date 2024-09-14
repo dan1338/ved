@@ -41,10 +41,16 @@ namespace ui
         _cb_user.uniform_image = glGetUniformLocation(_cb_user.shader, "image");
         _cb_user.uniform_screen_size = glGetUniformLocation(_cb_user.shader, "screen_size");
         _cb_user.uniform_image_size = glGetUniformLocation(_cb_user.shader, "image_size");
+        _cb_user.uniform_show_outline = glGetUniformLocation(_cb_user.shader, "show_outline");
+        _cb_user.uniform_clip_pos = glGetUniformLocation(_cb_user.shader, "clip_pos");
+        _cb_user.uniform_clip_size = glGetUniformLocation(_cb_user.shader, "clip_size");
 
         LOG_DEBUG(logger, "Shader uniforms, image = {}", _cb_user.uniform_image);
         LOG_DEBUG(logger, "Shader uniforms, screen_size = {}", _cb_user.uniform_screen_size);
         LOG_DEBUG(logger, "Shader uniforms, image_size = {}", _cb_user.uniform_image_size);
+        LOG_DEBUG(logger, "Shader uniforms, show_outline = {}", _cb_user.uniform_show_outline);
+        LOG_DEBUG(logger, "Shader uniforms, clip_pos = {}", _cb_user.uniform_clip_pos);
+        LOG_DEBUG(logger, "Shader uniforms, clip_size = {}", _cb_user.uniform_clip_size);
         
         // Set the precise display time of current frame if it's shown for the first time
         // also calculate the end time and notify MainWindow of it
@@ -133,6 +139,8 @@ namespace ui
                 glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, frame->width, frame->height, 0, GL_RGB, GL_UNSIGNED_BYTE, frame->data[0]);
             }
 
+            _cb_user.active_clip = nullptr;
+
             // Mouse interactions
             if (ImGui::IsWindowHovered())
             {
@@ -162,6 +170,7 @@ namespace ui
                         if (clip_id.has_value())
                         {
                             auto &clip = active_track.clips[*clip_id];
+                            _cb_user.active_clip = &clip;
 
                             const auto win_size = ImGui::GetWindowSize();
 
@@ -199,6 +208,17 @@ namespace ui
                 glUniform1i(user->uniform_image, 1);
                 glUniform2f(user->uniform_screen_size, w, h);
                 glUniform2f(user->uniform_image_size, user->img_size.x, user->img_size.y);
+                glUniform1i(user->uniform_show_outline, user->active_clip? 1 : 0);
+
+                if (user->active_clip)
+                {
+                    const auto xform = *user->active_clip->transforms.begin();
+                    const auto clip_w = user->active_clip->file.width;
+                    const auto clip_h = user->active_clip->file.height;
+
+                    glUniform2f(user->uniform_clip_pos, xform.translate_x, xform.translate_y);
+                    glUniform2f(user->uniform_clip_size, xform.scale_x * (clip_w / (float)user->img_size.x), xform.scale_y * (clip_h / (float)user->img_size.y));
+                }
 
                 float verts[] = {
                     (x + 0) / vw, (y + 0) / vh, 0.0, 0.0,
@@ -437,6 +457,9 @@ namespace ui
         {
             PreviewFrame frame;
             out_frames >> frame;
+
+            if (last_frame)
+                av_frame_unref(last_frame);
 
             last_frame = frame.second;
             workspace.set_cursor(core::timestamp{last_frame->pts}, false);

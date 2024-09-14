@@ -34,6 +34,17 @@ namespace ffmpeg
             avformat_open_input(&format_ctx, path.c_str(), nullptr, nullptr);
             avformat_find_stream_info(format_ctx, nullptr);
 
+            for (size_t i = 0; i < format_ctx->nb_streams; i++)
+            {
+                const auto *stream = format_ctx->streams[i];
+
+                if (stream->codecpar->codec_type == AVMEDIA_TYPE_VIDEO)
+                {
+                    file.width = stream->codecpar->width;
+                    file.height = stream->codecpar->height;
+                }
+            }
+
             if (is_file_static_image(format_ctx))
             {
                 file.type = core::MediaFile::STATIC_IMAGE;

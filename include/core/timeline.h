@@ -96,7 +96,7 @@ namespace core
             // TODO: replace with sorted container
             std::optional<ClipID> clip_at(core::timestamp position);
 
-            Clip &add_clip(core::MediaFile file, core::timestamp position = 0s, ClipTransform origin_transform = {});
+            Clip &add_clip(core::MediaFile file, core::timestamp position = 0s, std::optional<ClipTransform> origin_transform = {});
             void rm_clip(ClipID id);
             void move_clip(Clip &clip, core::timestamp new_position);
             void split_clip(Clip &clip, core::timestamp split_position);

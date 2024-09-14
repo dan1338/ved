@@ -45,8 +45,8 @@ namespace core
                     break;
                 }
 
-                frame_ready_event.notify(frame);
                 _sink->write_frame(AVMEDIA_TYPE_VIDEO, frame);
+                frame_ready_event.notify(frame);
             }
 
             finished_event.notify();

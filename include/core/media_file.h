@@ -19,6 +19,9 @@ namespace core
         std::string path;
 
         core::timestamp duration;
+
+        int width{-1};
+        int height{-1};
     };
 }
 

@@ -101,10 +101,14 @@ namespace ui
             ImVec2 win_size;
             ImVec2 vp_size;
             ImVec2 img_size;
+            core::Timeline::Clip *active_clip;
 
             GLuint uniform_image;
             GLuint uniform_screen_size;
             GLuint uniform_image_size;
+            GLuint uniform_show_outline;
+            GLuint uniform_clip_pos;
+            GLuint uniform_clip_size;
         };
 
         core::Workspace &_workspace;

@@ -36,6 +36,10 @@ uniform sampler2D image;
 uniform vec2 screen_size;
 uniform vec2 image_size;
 
+uniform int show_outline;
+uniform vec2 clip_pos;
+uniform vec2 clip_size;
+
 void main() {
     vec2 uv = UV;
     float screen_aspect = screen_size.x / screen_size.y;
@@ -60,7 +64,26 @@ void main() {
     if (uv.x < 0.0 || uv.x > 1.0 || uv.y < 0.0 || uv.y > 1.0) {
         Color = vec4(0.0, 0.0, 0.0, 1.0);
     } else {
-        Color = vec4(texture2D(image, uv).rgb, 1.0);
+        vec4 color = vec4(texture2D(image, uv).rgb, 1.0);
+
+        if (show_outline == 1)
+        {
+            float dx = 0.00125;
+            float dy = dx * screen_aspect;
+
+            vec2 clip_tl = clip_pos;
+            vec2 clip_br = clip_pos + clip_size;
+
+            if (uv.x >= clip_tl.x && uv.y >= clip_tl.y && uv.x <= clip_br.x && uv.y <= clip_br.y)
+            {
+                if (abs(uv.x - clip_tl.x) < dx || abs(uv.y - clip_tl.y) < dy || abs(uv.x - clip_br.x) < dx || abs(uv.y - clip_br.y) < dy)
+                {
+                    color.rgb = vec3(0.6);
+                }
+            }
+        }
+
+        Color = color;
     }
 }
 

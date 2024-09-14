@@ -191,8 +191,8 @@ namespace core
             // TODO: Implement transform interpolation with various functions
             const auto [xform1, xform2] = find_current_clip_transforms(clip, ts);
 
-            const auto target_x = (int)(clip_frame->width * xform1.translate_x);
-            const auto target_y = (int)(clip_frame->height * xform1.translate_y);
+            const auto target_x = (int)(out_frame->width * xform1.translate_x);
+            const auto target_y = (int)(out_frame->height * xform1.translate_y);
             const auto target_width = (int)(clip_frame->width * xform1.scale_x);
             const auto target_height = (int)(clip_frame->height * xform1.scale_y);
 
