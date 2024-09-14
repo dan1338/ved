@@ -68,6 +68,11 @@ namespace ui
         {
             _opened = true;
             ImGui::OpenPopup(_widget_name);
+
+            const auto &props = _workspace.get_props();
+            _settings.video.width = props.video.width;
+            _settings.video.height = props.video.height;
+            _settings.video.fps = props.video.fps;
         }
 
         ImGui::SetNextWindowSize({500, 600});
