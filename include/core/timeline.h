@@ -148,6 +148,27 @@ namespace core
             }
         }
 
+        void swap_tracks(TrackID lhs_id, TrackID rhs_id)
+        {
+            if (_tracks.find(lhs_id) == _tracks.end() || _tracks.find(rhs_id) == _tracks.end())
+                return;
+
+            auto &lhs_track = _tracks.at(lhs_id);
+            auto &rhs_track = _tracks.at(rhs_id);
+
+            std::swap(lhs_track.clips, rhs_track.clips);
+
+            const auto fix_parent_id = [](TrackID parent_id){
+                return [parent_id](auto &it){ it.second.track_id = parent_id; };
+            };
+
+            std::for_each(lhs_track.clips.begin(), lhs_track.clips.end(), fix_parent_id(lhs_id));
+            std::for_each(rhs_track.clips.begin(), rhs_track.clips.end(), fix_parent_id(rhs_id));
+
+            track_modified_event.notify(lhs_id);
+            track_modified_event.notify(rhs_id);
+        }
+
         core::timestamp get_duration() const
         {
             return _duration;

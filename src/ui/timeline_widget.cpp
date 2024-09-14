@@ -133,9 +133,24 @@ namespace ui
 
                     ImGui::PushStyleColor(ImGuiCol_Button, {0, 0, 0, 0});
 
-                    if (ImGui::Button("X", {-1.0, -1.0}))
+                    if (ImGui::Button("X", {0.0, -1.0}))
                     {
                         track_to_remove.emplace(track.id);
+                    }
+
+                    ImGui::SameLine();
+
+                    if (ImGui::Button("^", {0.0, -1.0}))
+                    {
+                        _timeline.swap_tracks(track.id - 1, track.id);
+                    }
+
+                    ImGui::SameLine();
+
+
+                    if (ImGui::Button("V", {0.0, -1.0}))
+                    {
+                        _timeline.swap_tracks(track.id, track.id + 1);
                     }
 
                     ImGui::PopStyleColor();
