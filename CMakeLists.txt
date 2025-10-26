@@ -9,7 +9,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(PkgConfig REQUIRED)
 
-include(cmake/FFMpeg.cmake)
+#include(cmake/FFMpeg.cmake)
 
 # TODO: figure out a way to ensure linkage with static ffmpeg libs only
 # this and the set(CMAKE_FIND_LIBRARY_SUFFIXES) seems to work for now
@@ -24,8 +24,13 @@ pkg_check_modules(FFMPEG REQUIRED IMPORTED_TARGET
 )
 
 pkg_check_modules(GLFW3 REQUIRED glfw3)
-pkg_check_modules(GL REQUIRED gl)
+#pkg_check_modules(GL REQUIRED gl)
 pkg_check_modules(GLEW REQUIRED glew)
+
+pkg_check_modules(X264 REQUIRED x264)
+pkg_check_modules(VPX REQUIRED vpx)
+
+find_library(OpenGL_LIBRARY OpenGL REQUIRED)
 
 add_subdirectory(vendor/fmt)
 add_subdirectory(vendor/quill)
@@ -34,17 +39,21 @@ add_subdirectory(vendor/charls)
 
 include_directories(
     ${GLFW3_INCLUDE_DIRS}
-    ${GL_INCLUDE_DIRS}
+    #${GL_INCLUDE_DIRS}
     ${GLEW_INCLUDE_DIRS}
     vendor
     vendor/imgui
+    vendor/ffmpeg/ffmpeg-install/include
     include
 )
 
 link_directories(
     ${GLFW3_LIBRARY_DIRS}
-    ${GL_LIBRARY_DIRS}
+    #${GL_LIBRARY_DIRS}
     ${GLEW_LIBRARY_DIRS}
+
+    ${X264_LIBRARY_DIRS}
+    ${VPX_LIBRARY_DIRS}
 )
 
 add_executable(ved
@@ -89,8 +98,6 @@ target_link_libraries(ved
     quill
     msd_channel
     charls
-    dl
-    pthread
     #PkgConfig::FFMPEG
 
     # Absolute paths to ffmpeg static libs
@@ -104,19 +111,26 @@ target_link_libraries(ved
     ${CMAKE_SOURCE_DIR}/vendor/ffmpeg/ffmpeg-install/lib/libswscale.a
 
     # ffmpeg dependencies
-    X11
-    asound
-    atomic
     bz2
-    drm
     lzma
     m
-    x264
-    vpx
-    xcb
     z
 
+	iconv
+
+    "-framework Security"
+
+	"-framework OpenGL"
+    "-framework AudioToolbox"
+    "-framework VideoToolbox"
+    "-framework CoreVideo"
+    "-framework CoreMedia"
+    "-framework CoreFoundation"
+
+    ${X264_LIBRARIES}
+    ${VPX_LIBRARIES}
+
     ${GLFW3_LIBRARIES}
-    ${GL_LIBRARIES}
+    ${OpenGL_LIBRARIES}
     ${GLEW_LIBRARIES}
 )

@@ -1,7 +1,15 @@
 #pragma once
 
-#include <GL/glew.h>
-#include <GL/gl.h>
+#ifdef __APPLE__
+	#include <GL/glew.h>
+    #include <OpenGL/gl3.h>
+    #include <OpenGL/gl3ext.h>
+#else
+	#include <GL/glew.h>
+	#include <GL/gl.h>
+    #include <GL/glext.h>
+#endif
+
 
 #include <cstdio>
 #include <string>

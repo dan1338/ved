@@ -2,9 +2,16 @@
 
 #include <string>
 
-#include <GL/glew.h>
+#ifdef __APPLE__
+	#include <GL/glew.h>
+    #include <OpenGL/gl3.h>
+    #include <OpenGL/gl3ext.h>
+#else
+	#include <GL/glew.h>
+    #include <GL/glext.h>
+#endif
+
 #include <GLFW/glfw3.h>
-#include <GL/glext.h>
 
 #include "imgui/imgui.h"
 #include "imgui/imgui_internal.h"
